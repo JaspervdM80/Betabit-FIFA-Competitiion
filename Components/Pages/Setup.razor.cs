@@ -60,14 +60,9 @@ public partial class Setup : IDisposable
             var today = DateTime.Today;
             var startTime = new DateTime(today.Year, today.Month, today.Day, time.Hour, time.Minute, 0);
 
-            // Generate group stage fixtures
+            // Generate group stage fixtures only
+            // Knockout will be auto-generated when last group match is completed
             await CompetitionService.GenerateGroupStageFixturesAsync(startTime);
-
-            // Calculate knockout start time (after group stage + break)
-            // 6 rounds of group stage × 15 min = 90 min
-            // + 15 min break = 105 min total
-            var knockoutStartTime = startTime.AddMinutes(105);
-            await CompetitionService.GenerateKnockoutFixturesAsync(knockoutStartTime);
 
             await LoadTeamsAsync();
             errorMessage = string.Empty;

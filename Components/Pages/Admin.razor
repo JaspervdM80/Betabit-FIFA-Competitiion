@@ -105,10 +105,22 @@ else
     
     @if (!knockoutMatches.Any())
     {
-        <div class="alert alert-warning">
-            <span>⚠️</span>
-            <span>Knockout matches not yet generated. Go to Setup to generate the full competition.</span>
-        </div>
+        var groupMatchesCompleted = groupMatches.Any() && groupMatches.All(m => m.IsPlayed);
+        
+        @if (groupMatchesCompleted)
+        {
+            <div class="alert alert-success">
+                <span>⏳</span>
+                <span><strong>Generating knockout fixtures...</strong> Refresh the page if they don't appear automatically.</span>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <span>ℹ️</span>
+                <span>Knockout matches will automatically generate after all group stage matches are complete.</span>
+            </div>
+        }
     }
     else
     {

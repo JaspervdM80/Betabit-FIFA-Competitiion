@@ -216,12 +216,23 @@ public class CompetitionService
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
 
+        // Check if knockout fixtures already exist
+        var existingKnockout = await context.Matches
+            .Where(m => m.Stage == MatchStage.Knockout)
+            .AnyAsync();
+
+        if (existingKnockout)
+        {
+            // Knockout already generated, skip
+            return;
+        }
+
         // Check if all group stage matches are played
         var groupMatches = await context.Matches
             .Where(m => m.Stage == MatchStage.GroupStage)
             .ToListAsync();
 
-        if (!groupMatches.All(m => m.IsPlayed))
+        if (!groupMatches.Any() || !groupMatches.All(m => m.IsPlayed))
         {
             throw new InvalidOperationException("All group stage matches must be completed first");
         }
@@ -230,30 +241,6 @@ public class CompetitionService
         var teams = await context.Teams.ToListAsync();
         var groupAStandings = GetGroupStandings(teams, GroupName.GroupA);
         var groupBStandings = GetGroupStandings(teams, GroupName.GroupB);
-
-        // Top 2 from each group go to Champions League
-        var championsTeams = new List<Team>
-        {
-            groupAStandings[0], // Group A 1st
-            groupBStandings[0], // Group B 1st
-            groupAStandings[1], // Group A 2nd
-            groupBStandings[1]  // Group B 2nd
-        };
-
-        // Bottom 2 from each group go to Europa League
-        var europaTeams = new List<Team>
-        {
-            groupAStandings[2], // Group A 3rd
-            groupBStandings[2], // Group B 3rd
-            groupAStandings[3], // Group A 4th
-            groupBStandings[3]  // Group B 4th
-        };
-
-        // Remove existing knockout matches
-        var existingKnockout = await context.Matches
-            .Where(m => m.Stage == MatchStage.Knockout)
-            .ToListAsync();
-        context.Matches.RemoveRange(existingKnockout);
 
         var currentTime = startTime;
 
@@ -312,7 +299,23 @@ public class CompetitionService
 
         currentTime = currentTime.AddMinutes(15);
 
-        // Generate Finals (TBD teams)
+        // Generate Finals sequentially (Europa League first, then Champions League with 10-minute pause)
+        // Europa League Final
+        context.Matches.Add(new Match
+        {
+            HomeTeamId = Guid.Empty, // TBD
+            AwayTeamId = Guid.Empty, // TBD
+            Stage = MatchStage.Knockout,
+            KnockoutRound = KnockoutRound.Final,
+            LeagueType = LeagueType.EuropaLeague,
+            ScheduledTime = currentTime,
+            ScreenNumber = 1
+        });
+
+        // Add 10 minute pause after Europa League final
+        currentTime = currentTime.AddMinutes(15 + 10);
+
+        // Champions League Final
         context.Matches.Add(new Match
         {
             HomeTeamId = Guid.Empty, // TBD
@@ -322,17 +325,6 @@ public class CompetitionService
             LeagueType = LeagueType.ChampionsLeague,
             ScheduledTime = currentTime,
             ScreenNumber = 1
-        });
-
-        context.Matches.Add(new Match
-        {
-            HomeTeamId = Guid.Empty, // TBD
-            AwayTeamId = Guid.Empty, // TBD
-            Stage = MatchStage.Knockout,
-            KnockoutRound = KnockoutRound.Final,
-            LeagueType = LeagueType.EuropaLeague,
-            ScheduledTime = currentTime,
-            ScreenNumber = 2
         });
 
         await context.SaveChangesAsync();
@@ -346,10 +338,12 @@ public class CompetitionService
         var match = await context.Matches.FindAsync(matchId);
         if (match == null) return;
 
+        var wasGroupStageMatch = match.Stage == MatchStage.GroupStage;
+
         // For knockout finals, check if this completes a semi-final and update final
         if (match.Stage == MatchStage.Knockout && match.KnockoutRound == KnockoutRound.SemiFinal)
         {
-            var winnerId = match.HomeScore > match.AwayScore ? match.HomeTeamId : match.AwayTeamId;
+            var winnerId = homeScore > awayScore ? match.HomeTeamId : match.AwayTeamId;
             
             // Find the corresponding final
             var final = await context.Matches
@@ -368,10 +362,16 @@ public class CompetitionService
                         m.LeagueType == match.LeagueType)
                     .ToListAsync();
 
-                if (semiFinals.Count == 2 && semiFinals.All(sf => sf.IsPlayed))
+                // Update this semi-final's score first
+                match.HomeScore = homeScore;
+                match.AwayScore = awayScore;
+                match.PlayedDate = DateTime.Now;
+
+                // Check if both semi-finals are now complete
+                if (semiFinals.Count == 2 && semiFinals.All(sf => sf.Id == match.Id ? true : sf.IsPlayed))
                 {
-                    var winner1 = semiFinals[0].GetWinnerId();
-                    var winner2 = semiFinals[1].GetWinnerId();
+                    var winner1 = semiFinals[0].Id == match.Id ? winnerId : semiFinals[0].GetWinnerId();
+                    var winner2 = semiFinals[1].Id == match.Id ? winnerId : semiFinals[1].GetWinnerId();
 
                     if (winner1.HasValue && winner2.HasValue)
                     {
@@ -402,15 +402,47 @@ public class CompetitionService
             // Update team statistics
             UpdateTeamStatistics(match, homeTeam, awayTeam);
         }
-        else
+        else if (match.Stage == MatchStage.Knockout)
         {
-            // For knockout matches, just update the score
-            match.HomeScore = homeScore;
-            match.AwayScore = awayScore;
-            match.PlayedDate = DateTime.Now;
+            // For knockout matches, just update the score (already done above for semi-finals)
+            if (match.KnockoutRound != KnockoutRound.SemiFinal)
+            {
+                match.HomeScore = homeScore;
+                match.AwayScore = awayScore;
+                match.PlayedDate = DateTime.Now;
+            }
         }
 
         await context.SaveChangesAsync();
+
+        // Check if this was the last group stage match and auto-generate knockout
+        if (wasGroupStageMatch)
+        {
+            var allGroupMatches = await context.Matches
+                .Where(m => m.Stage == MatchStage.GroupStage)
+                .ToListAsync();
+
+            // If all group matches are now complete, auto-generate knockout
+            if (allGroupMatches.All(m => m.IsPlayed))
+            {
+                // Get the scheduled time of the last group match + 15 minute break
+                var lastGroupMatchTime = allGroupMatches
+                    .Where(m => m.ScheduledTime.HasValue)
+                    .Max(m => m.ScheduledTime!.Value);
+
+                var knockoutStartTime = lastGroupMatchTime.AddMinutes(15);
+
+                try
+                {
+                    await GenerateKnockoutFixturesAsync(knockoutStartTime);
+                }
+                catch
+                {
+                    // Knockout already exists or some other issue, ignore
+                }
+            }
+        }
+
         NotifyStateChanged();
     }
 

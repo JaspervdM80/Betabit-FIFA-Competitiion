@@ -33,18 +33,17 @@ else
             <ul style="margin-bottom: 2rem; font-size: 1.05rem; line-height: 1.8;">
                 <li>✅ Randomly assign 8 teams into 2 groups (4 teams each)</li>
                 <li>✅ Generate group stage fixtures (12 matches - 6 rounds)</li>
-                <li>✅ Generate knockout fixtures (6 matches - 3 rounds)</li>
                 <li>✅ Schedule matches on 2 screens simultaneously</li>
+                <li>🎯 Knockout phase auto-generates after last group match</li>
             </ul>
 
             <div class="form-group" style="max-width: 300px;">
                 <label class="form-label">Start Time</label>
-                <input type="time" class="form-control" @bind-value="startTimeInput" @bind-value:format="HH:mm" />
+                <input type="time" class="form-control" @bind="startTimeInput" />
                 <div class="mt-2" style="font-size: 0.9rem; color: var(--text-secondary);">
                     Group Stage: 6 rounds × 15 min = 1h 30min<br/>
-                    Break: 15 minutes<br/>
-                    Knockout: 3 rounds × 15 min = 45min<br/>
-                    <strong>Total duration: ~2h 30min</strong>
+                    <strong>Knockout will auto-generate after group stage completes</strong><br/>
+                    (Break: 15 min | Knockout: 3 rounds × 15 min = 45min)
                 </div>
             </div>
 
@@ -94,7 +93,8 @@ else
                     <strong>Start Time:</strong> @startTimeInput
                 </p>
                 <p style="font-size: 1.05rem; color: var(--text-secondary);">
-                    All fixtures have been generated with matches scheduled on both screens!
+                    ✅ Group stage fixtures generated<br/>
+                    🎯 Knockout will automatically generate after the last group match is played
                 </p>
             </div>
 
