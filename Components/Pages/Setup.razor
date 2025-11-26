@@ -16,7 +16,7 @@
         <span>⚠️</span>
         <span>Please register 8 teams before setting up the competition. Current teams: @teams.Count/8</span>
     </div>
-    <button class="btn btn-primary" @onclick="() => Navigation.NavigateTo(\"/\")">
+    <button class="btn btn-primary" @onclick="GoToTeams">
         Go to Teams Management
     </button>
 }
@@ -37,7 +37,7 @@ else
                                 <input type="checkbox" 
                                        checked="@groupATeamIds.Contains(team.Id)"
                                        @onchange="() => ToggleGroupA(team.Id)"
-                                       disabled="@(groupATeamIds.Count >= 4 && !groupATeamIds.Contains(team.Id))" />
+                                       disabled="@IsGroupACheckboxDisabled(team.Id)" />
                                 <span>@team.TeamName</span>
                             </label>
                         </div>
@@ -59,7 +59,7 @@ else
                                 <input type="checkbox" 
                                        checked="@groupBTeamIds.Contains(team.Id)"
                                        @onchange="() => ToggleGroupB(team.Id)"
-                                       disabled="@(groupBTeamIds.Count >= 4 && !groupBTeamIds.Contains(team.Id))" />
+                                       disabled="@IsGroupBCheckboxDisabled(team.Id)" />
                                 <span>@team.TeamName</span>
                             </label>
                         </div>
@@ -82,7 +82,7 @@ else
         <div class="mt-4">
             <button class="btn btn-primary" 
                     @onclick="SaveGroupAssignments"
-                    disabled="@(groupATeamIds.Count != 4 || groupBTeamIds.Count != 4 || HasOverlap())">
+                    disabled="@IsSaveDisabled()">
                 Save Group Assignments
             </button>
         </div>
@@ -95,7 +95,7 @@ else
             
             <div class="form-group" style="max-width: 300px;">
                 <label class="form-label">Start Time</label>
-                <input type="time" class="form-control" @bind="startTimeInput" />
+                <input type="time" class="form-control" @bind-value="startTimeInput" @bind-value:format="HH:mm" />
                 <div class="mt-2" style="font-size: 0.9rem; color: var(--text-secondary);">
                     Group Stage: 6 rounds × 15 min = 1h 30min<br/>
                     Break: 15 minutes<br/>
