@@ -1,0 +1,326 @@
+.display-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, #0d1b2a 50%, var(--bg-primary) 100%);
+    padding: 2rem;
+}
+
+.display-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 3px solid var(--electric-blue);
+}
+
+.display-title {
+    font-size: 4rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+    background: linear-gradient(135deg, var(--electric-blue), var(--neon-green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+    animation: glow 3s ease-in-out infinite;
+}
+
+.current-time {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--neon-green);
+    font-family: 'Courier New', monospace;
+}
+
+.display-content {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.section-highlight {
+    margin-bottom: 3rem;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--electric-blue);
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.live-matches {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 2rem;
+}
+
+.live-match-card {
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 2rem;
+    border: 3px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.live-match-card.live {
+    border-color: #ff0000;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.live-match-card.completed {
+    opacity: 0.7;
+    border-color: var(--neon-green);
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 0, 0, 0.5); }
+    50% { box-shadow: 0 0 40px rgba(255, 0, 0, 0.8); }
+}
+
+.match-time-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--electric-blue);
+}
+
+.screen-badge {
+    background: linear-gradient(135deg, var(--azure-blue), var(--electric-blue));
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 1rem;
+}
+
+.match-teams-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.team-display {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.team-display:last-child {
+    flex-direction: row-reverse;
+}
+
+.team-name-large {
+    flex: 1;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--text-primary);
+}
+
+.team-score-large {
+    font-size: 3rem;
+    font-weight: 900;
+    color: var(--neon-green);
+    min-width: 80px;
+    text-align: center;
+}
+
+.vs-large {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--text-secondary);
+}
+
+.match-status {
+    text-align: center;
+    padding: 0.75rem;
+    border-radius: 10px;
+    font-weight: 900;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+}
+
+.live-badge {
+    background: linear-gradient(135deg, #ff0000, #cc0000);
+    color: white;
+    animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.completed-badge {
+    background: linear-gradient(135deg, var(--neon-green), var(--pitch-green));
+    color: var(--bg-primary);
+}
+
+.upcoming-badge {
+    background: rgba(0, 212, 255, 0.2);
+    color: var(--electric-blue);
+}
+
+.standings-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.group-standings {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 2px solid var(--border-color);
+}
+
+.group-title {
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.standings-table thead {
+    background: linear-gradient(135deg, var(--azure-blue), var(--electric-blue));
+}
+
+.standings-table th {
+    padding: 1rem 0.5rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.standings-table td {
+    padding: 1rem 0.5rem;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.standings-table .pos {
+    font-weight: 900;
+    font-size: 1.3rem;
+    color: var(--electric-blue);
+}
+
+.standings-table .team-cell {
+    text-align: left;
+    font-size: 1.2rem;
+}
+
+.standings-table .pts {
+    font-weight: 900;
+    font-size: 1.4rem;
+    color: var(--neon-green);
+}
+
+.standings-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.qualify-cl {
+    background: linear-gradient(90deg, rgba(0, 102, 255, 0.2) 0%, transparent 100%);
+    border-left: 4px solid var(--champions-blue);
+}
+
+.qualify-el {
+    background: linear-gradient(90deg, rgba(255, 102, 0, 0.2) 0%, transparent 100%);
+    border-left: 4px solid var(--europa-orange);
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-bottom: 3rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.legend-cl {
+    color: var(--champions-blue);
+}
+
+.legend-el {
+    color: var(--europa-orange);
+}
+
+.all-matches-section {
+    margin-top: 3rem;
+}
+
+.matches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 1rem;
+}
+
+.schedule-match {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.schedule-match.tbd {
+    opacity: 0.5;
+}
+
+.schedule-time {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: var(--electric-blue);
+}
+
+.schedule-teams {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.vs-small {
+    color: var(--text-secondary);
+    margin: 0 0.5rem;
+}
+
+.schedule-info {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .display-title {
+        font-size: 2rem;
+    }
+
+    .live-matches,
+    .standings-container,
+    .matches-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .team-name-large {
+        font-size: 1.2rem;
+    }
+
+    .team-score-large {
+        font-size: 2rem;
+    }
+}

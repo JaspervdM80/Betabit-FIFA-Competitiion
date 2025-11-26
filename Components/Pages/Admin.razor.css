@@ -1,0 +1,128 @@
+.matches-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.admin-match-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.admin-match-card:hover {
+    border-color: var(--electric-blue);
+    box-shadow: var(--shadow-hover);
+}
+
+.match-completed {
+    opacity: 0.7;
+    border-color: var(--neon-green);
+}
+
+.match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.match-time {
+    font-weight: 700;
+    color: var(--electric-blue);
+    font-size: 1.1rem;
+}
+
+.match-group, .match-round {
+    background: linear-gradient(135deg, var(--azure-blue), var(--electric-blue));
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.match-details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.team-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.team-section:last-child {
+    flex-direction: row-reverse;
+}
+
+.team-name {
+    flex: 1;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.score-input {
+    width: 80px;
+    padding: 0.75rem;
+    text-align: center;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1.3rem;
+    font-weight: 900;
+    background: rgba(0, 212, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.score-input:focus {
+    outline: none;
+    border-color: var(--electric-blue);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+.score-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.vs {
+    font-weight: 900;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+}
+
+.match-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.match-result {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: 700;
+    color: var(--neon-green);
+}
+
+.btn-sm {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9rem;
+}
+
+.tbd-message {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}

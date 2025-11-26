@@ -7,8 +7,9 @@ public class Team
     public required string Player1Name { get; set; }
     public required string Player2Name { get; set; }
     public required string ClubCountry { get; set; }
+    public GroupName? GroupName { get; set; }
     
-    // Statistics
+    // Group Stage Statistics
     public int Played { get; set; }
     public int Won { get; set; }
     public int Drawn { get; set; }
@@ -27,4 +28,10 @@ public class Team
         GoalsFor = 0;
         GoalsAgainst = 0;
     }
+}
+
+public enum GroupName
+{
+    GroupA,
+    GroupB
 }

@@ -1,0 +1,248 @@
+@page "/admin"
+@using FC26Competition.Models
+@using FC26Competition.Services
+@implements IDisposable
+@rendermode InteractiveServer
+
+<div class="page-header">
+    <h1 class="page-title">🎮 Admin - Match Management</h1>
+    <p class="page-description">Enter match results</p>
+</div>
+
+<div class="flex" style="gap: 1rem; margin-bottom: 2rem;">
+    <button class="btn @(showGroupStage ? "btn-primary" : "btn-secondary")" 
+            @onclick="() => showGroupStage = true">
+        Group Stage
+    </button>
+    <button class="btn @(!showGroupStage ? "btn-primary" : "btn-secondary")" 
+            @onclick="() => showGroupStage = false">
+        Knockout Stage
+    </button>
+</div>
+
+@if (showGroupStage)
+{
+    <h2 style="color: var(--electric-blue); margin-bottom: 1.5rem;">⚽ Group Stage Matches</h2>
+    
+    @if (!groupMatches.Any())
+    {
+        <div class="alert alert-info">
+            <span>ℹ️</span>
+            <span>No group stage matches generated yet. Please go to Setup to create the schedule.</span>
+        </div>
+    }
+    else
+    {
+        <div class="matches-container">
+            @foreach (var match in groupMatches.OrderBy(m => m.ScheduledTime).ThenBy(m => m.ScreenNumber))
+            {
+                var homeTeam = GetTeam(match.HomeTeamId);
+                var awayTeam = GetTeam(match.AwayTeamId);
+                
+                if (homeTeam != null && awayTeam != null)
+                {
+                    <div class="admin-match-card @(match.IsPlayed ? "match-completed" : "")">
+                        <div class="match-header">
+                            <span class="match-time">
+                                @match.ScheduledTime?.ToString("HH:mm") - Screen @match.ScreenNumber
+                            </span>
+                            <span class="match-group">@match.GroupName</span>
+                        </div>
+                        
+                        <div class="match-details">
+                            <div class="team-section">
+                                <span class="team-name">@homeTeam.TeamName</span>
+                                <input type="number" 
+                                       class="score-input" 
+                                       min="0" 
+                                       @bind="homeScores[match.Id]" 
+                                       placeholder="0"
+                                       disabled="@match.IsPlayed" />
+                            </div>
+                            
+                            <span class="vs">VS</span>
+                            
+                            <div class="team-section">
+                                <input type="number" 
+                                       class="score-input" 
+                                       min="0" 
+                                       @bind="awayScores[match.Id]" 
+                                       placeholder="0"
+                                       disabled="@match.IsPlayed" />
+                                <span class="team-name">@awayTeam.TeamName</span>
+                            </div>
+                        </div>
+                        
+                        <div class="match-actions">
+                            @if (!match.IsPlayed)
+                            {
+                                <button class="btn btn-primary btn-sm" @onclick="() => SaveMatchResultAsync(match)">
+                                    ✅ Save Result
+                                </button>
+                            }
+                            else
+                            {
+                                <div class="match-result">
+                                    <span>Final: @match.HomeScore - @match.AwayScore</span>
+                                    <button class="btn btn-secondary btn-sm" @onclick="() => EditMatchResult(match)">
+                                        ✏️ Edit
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+}
+else
+{
+    <h2 style="color: var(--electric-blue); margin-bottom: 1.5rem;">🏆 Knockout Stage Matches</h2>
+    
+    @if (!knockoutMatches.Any())
+    {
+        <div class="alert alert-info">
+            <span>ℹ️</span>
+            <span>Knockout matches will be generated after all group stage matches are complete.</span>
+        </div>
+    }
+    else
+    {
+        <!-- Champions League -->
+        <h3 style="color: var(--champions-blue); margin: 2rem 0 1rem;">🏆 Champions League</h3>
+        <div class="matches-container">
+            @foreach (var match in knockoutMatches.Where(m => m.LeagueType == LeagueType.ChampionsLeague))
+            {
+                var homeTeam = match.HomeTeamId != Guid.Empty ? GetTeam(match.HomeTeamId) : null;
+                var awayTeam = match.AwayTeamId != Guid.Empty ? GetTeam(match.AwayTeamId) : null;
+                
+                <div class="admin-match-card @(match.IsPlayed ? "match-completed" : "")">
+                    <div class="match-header">
+                        <span class="match-time">
+                            @match.ScheduledTime?.ToString("HH:mm") - Screen @match.ScreenNumber
+                        </span>
+                        <span class="match-round">@match.KnockoutRound</span>
+                    </div>
+                    
+                    @if (homeTeam != null && awayTeam != null)
+                    {
+                        <div class="match-details">
+                            <div class="team-section">
+                                <span class="team-name">@homeTeam.TeamName</span>
+                                <input type="number" 
+                                       class="score-input" 
+                                       min="0" 
+                                       @bind="homeScores[match.Id]" 
+                                       placeholder="0"
+                                       disabled="@match.IsPlayed" />
+                            </div>
+                            
+                            <span class="vs">VS</span>
+                            
+                            <div class="team-section">
+                                <input type="number" 
+                                       class="score-input" 
+                                       min="0" 
+                                       @bind="awayScores[match.Id]" 
+                                       placeholder="0"
+                                       disabled="@match.IsPlayed" />
+                                <span class="team-name">@awayTeam.TeamName</span>
+                            </div>
+                        </div>
+                        
+                        <div class="match-actions">
+                            @if (!match.IsPlayed)
+                            {
+                                <button class="btn btn-champions btn-sm" @onclick="() => SaveMatchResultAsync(match)">
+                                    ✅ Save Result
+                                </button>
+                            }
+                            else
+                            {
+                                <div class="match-result">
+                                    <span>Final: @match.HomeScore - @match.AwayScore</span>
+                                    <button class="btn btn-secondary btn-sm" @onclick="() => EditMatchResult(match)">
+                                        ✏️ Edit
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="tbd-message">Teams TBD - Complete semi-finals first</div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Europa League -->
+        <h3 style="color: var(--europa-orange); margin: 2rem 0 1rem;">🥈 Europa League</h3>
+        <div class="matches-container">
+            @foreach (var match in knockoutMatches.Where(m => m.LeagueType == LeagueType.EuropaLeague))
+            {
+                var homeTeam = match.HomeTeamId != Guid.Empty ? GetTeam(match.HomeTeamId) : null;
+                var awayTeam = match.AwayTeamId != Guid.Empty ? GetTeam(match.AwayTeamId) : null;
+                
+                <div class="admin-match-card @(match.IsPlayed ? "match-completed" : "")">
+                    <div class="match-header">
+                        <span class="match-time">
+                            @match.ScheduledTime?.ToString("HH:mm") - Screen @match.ScreenNumber
+                        </span>
+                        <span class="match-round">@match.KnockoutRound</span>
+                    </div>
+                    
+                    @if (homeTeam != null && awayTeam != null)
+                    {
+                        <div class="match-details">
+                            <div class="team-section">
+                                <span class="team-name">@homeTeam.TeamName</span>
+                                <input type="number" 
+                                       class="score-input" 
+                                       min="0" 
+                                       @bind="homeScores[match.Id]" 
+                                       placeholder="0"
+                                       disabled="@match.IsPlayed" />
+                            </div>
+                            
+                            <span class="vs">VS</span>
+                            
+                            <div class="team-section">
+                                <input type="number" 
+                                       class="score-input" 
+                                       min="0" 
+                                       @bind="awayScores[match.Id]" 
+                                       placeholder="0"
+                                       disabled="@match.IsPlayed" />
+                                <span class="team-name">@awayTeam.TeamName</span>
+                            </div>
+                        </div>
+                        
+                        <div class="match-actions">
+                            @if (!match.IsPlayed)
+                            {
+                                <button class="btn btn-europa btn-sm" @onclick="() => SaveMatchResultAsync(match)">
+                                    ✅ Save Result
+                                </button>
+                            }
+                            else
+                            {
+                                <div class="match-result">
+                                    <span>Final: @match.HomeScore - @match.AwayScore</span>
+                                    <button class="btn btn-secondary btn-sm" @onclick="() => EditMatchResult(match)">
+                                        ✏️ Edit
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="tbd-message">Teams TBD - Complete semi-finals first</div>
+                    }
+                </div>
+            }
+        </div>
+    }
+}

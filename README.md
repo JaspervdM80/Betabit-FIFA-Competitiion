@@ -1,163 +1,243 @@
 # FC26 Competition Manager
 
-A professional yet playful .NET 9 Blazor web application for managing FC26 football competitions.
+A professional EA FC26-themed .NET 9 Blazor application for managing football competitions with group stages, knockout rounds, and live display screens.
 
-## Features
+## 🏆 Competition Format
 
-### 🏆 Competition Structure
-- **16 Teams**: Each team consists of two players representing a club or country
-- **Round-Robin Tournament**: Every team plays every other team once (120 matches total)
-- **Split Leagues**: After the main competition, teams are split into:
-  - **Betabit Champions League**: Top 4 teams
-  - **Betabit Europa League**: Bottom 4 teams
+### Group Stage
+- **2 Groups of 4 Teams** (Group A and Group B)
+- Round-robin within each group (3 matches per team)
+- **12 total matches** (6 per group)
+- Played simultaneously on 2 screens
+- 6 rounds of 15 minutes each
 
-### ⚽ Team Management
-- Add, edit, and delete teams (max 16 teams)
+### Knockout Stage
+After a 15-minute break:
+- **Top 2 from each group** → Champions League Knockout
+- **Bottom 2 from each group** → Europa League Knockout
+- Semi-finals + Finals for both leagues
+- **6 total knockout matches**
+- 3 rounds of 15 minutes each
+
+### Schedule
+- **Start Time**: 18:30 (customizable)
+- **2 Screens**: Matches played simultaneously
+- **Match Duration**: 15 minutes per round
+- **Total Duration**: ~2.5 hours
+
+## 🎮 Features
+
+### Team Management
+- Add, edit, and delete teams (max 8 teams)
 - Each team has:
   - Team name
   - Two player names
   - Club/Country representation
-- Real-time statistics tracking
+- Assign teams to Group A or Group B
 
-### 📊 Competition Views
-1. **Teams Page**: Manage all teams
-2. **Main Competition**: View standings and enter match results
-3. **Split Leagues**: View Champions League and Europa League separately
+### Competition Setup
+- Assign 4 teams to each group
+- Generate complete schedule with times
+- Automatic fixture generation for both stages
+- Customizable start time
 
-### 🎨 Design
-- Professional football-themed color scheme
-- Responsive layout for all screen sizes
-- Interactive match result entry
-- Real-time standings updates
-- Visual indicators for league qualification
+### Admin Panel (Separate Screen)
+- Enter match results in real-time
+- Switch between Group Stage and Knockout views
+- Edit results if needed
+- See which matches are on which screen
 
-## Technical Stack
+### Live Display (Public Screen)
+- **Live scores** for current matches
+- **Upcoming matches** with countdown timers
+- **Group standings** with real-time updates
+- **Full schedule** for the event
+- Auto-refreshes every 5 seconds
+- Color-coded qualification indicators
 
-- **.NET 9**
-- **Blazor Server** with Interactive render mode
-- **C# 13** with nullable reference types enabled
-- Clean architecture with separation of concerns
-- Singleton service for state management
+### Database Persistence
+- SQLite database for data storage
+- All results saved automatically
+- Competition state persists between sessions
 
-## Project Structure
+## 🎨 Design
+
+- **EA FC26 Gaming Aesthetic**: Dark theme with neon accents
+- **Betabit Branding**: Azure blue colors integrated
+- **Dual Screen Support**: Admin panel + Public display
+- **Responsive**: Works on all device sizes
+- **Real-time Updates**: Changes sync across all screens
+
+## 🚀 Quick Start
+
+### Prerequisites
+- .NET 9 SDK
+
+### Running the Application
+
+1. **Restore packages:**
+   ```bash
+   dotnet restore
+   ```
+
+2. **Run the application:**
+   ```bash
+   dotnet run
+   ```
+
+3. **Access the application:**
+   - Main: `https://localhost:5001`
+   - Admin: `https://localhost:5001/admin`
+   - Display: `https://localhost:5001/display`
+
+## 📋 Competition Workflow
+
+### 1. Team Registration
+1. Navigate to **Teams** page
+2. Add 8 teams with their details
+3. Each team gets a unique name, players, and club/country
+
+### 2. Setup Competition
+1. Navigate to **Setup** page
+2. Assign 4 teams to Group A
+3. Assign 4 teams to Group B
+4. Set the start time (default 18:30)
+5. Click "Generate Full Schedule"
+
+### 3. During Competition
+**Admin Screen** (`/admin`):
+- Enter match results as games finish
+- Switch between Group Stage and Knockout tabs
+- Edit results if needed
+
+**Display Screen** (`/display` - open in separate window/screen):
+- Shows live matches with scores
+- Displays group standings
+- Shows upcoming matches
+- Auto-updates every 5 seconds
+
+### 4. Progression
+- After all group matches complete:
+  - Top 2 from each group → Champions League
+  - Bottom 2 from each group → Europa League
+- Knockout matches auto-generate with correct teams
+- Finals determine the champions of each league
+
+## 🖥️ Screen Setup Recommendation
+
+### Option 1: Two Computer Setup
+- **Computer 1**: Admin panel for entering results
+- **Computer 2**: Display screen for audience
+
+### Option 2: Single Computer with Multiple Monitors
+- **Monitor 1**: Admin panel
+- **Monitor 2**: Display screen (press F11 for fullscreen)
+
+## 📊 Technical Details
+
+### Tech Stack
+- .NET 9
+- Blazor Server (Interactive render mode)
+- Entity Framework Core 9.0
+- SQLite database
+- C# with nullable reference types
+
+### Database Schema
+- **Teams**: Team info, group assignment, statistics
+- **Matches**: Schedule, scores, stage, screen assignment
+
+### Real-time Updates
+- Event-driven architecture
+- Components subscribe to service changes
+- Automatic UI refresh on data updates
+
+## 🎯 Key Features
+
+✅ Dual-screen support (admin + display)
+✅ Real-time score updates
+✅ Automatic knockout bracket generation
+✅ Live match indicators
+✅ Countdown timers for upcoming matches
+✅ Group standings with qualification zones
+✅ Complete match schedule
+✅ Data persistence with SQLite
+✅ Responsive design
+✅ EA FC26 gaming aesthetic
+
+## 📁 Project Structure
 
 ```
 FC26Competition/
 ├── Components/
 │   ├── Layout/
-│   │   └── MainLayout.razor          # Main layout with navigation
+│   │   └── MainLayout.razor
 │   ├── Pages/
-│   │   ├── Teams.razor               # Team management
-│   │   ├── Competition.razor         # Main competition view
-│   │   └── SplitLeagues.razor        # Champions & Europa League
-│   ├── App.razor                     # Root component
-│   ├── Routes.razor                  # Routing configuration
-│   └── _Imports.razor                # Global using directives
+│   │   ├── Teams.razor         # Team management
+│   │   ├── Setup.razor         # Group assignment & schedule generation
+│   │   ├── Admin.razor         # Match result entry
+│   │   └── Display.razor       # Public live display
+├── Data/
+│   └── FC26CompetitionContext.cs
 ├── Models/
-│   ├── Team.cs                       # Team model with statistics
-│   └── Match.cs                      # Match model with phases
+│   ├── Team.cs                 # Team with group assignment
+│   └── Match.cs                # Match with scheduling
 ├── Services/
-│   └── CompetitionService.cs         # Business logic service
-├── wwwroot/
-│   └── app.css                       # Main stylesheet
-├── Program.cs                        # Application entry point
-├── appsettings.json                  # Configuration
-└── FC26Competition.csproj            # Project file
+│   └── CompetitionService.cs   # Business logic
+└── wwwroot/
+    └── app.css                 # EA FC26 styling
 ```
 
-## Getting Started
+## 🔧 Configuration
 
-### Prerequisites
-- .NET 9 SDK installed
-- Any modern web browser
+### Start Time
+Modify in Setup page before generating schedule
 
-### Running the Application
+### Match Duration
+Currently fixed at 15 minutes per round
+(Can be modified in `CompetitionService.cs`)
 
-1. Navigate to the project directory:
-```bash
-cd FC26Competition
-```
+### Auto-refresh Rate
+Display page refreshes every 5 seconds
+(Can be modified in `Display.razor`)
 
-2. Restore dependencies:
-```bash
-dotnet restore
-```
+## 🎪 Event Day Tips
 
-3. Run the application:
-```bash
-dotnet run
-```
+1. **Setup before event**:
+   - Register all 8 teams
+   - Assign groups
+   - Generate schedule
+   - Test both screens
 
-4. Open your browser and navigate to the URL shown in the console (typically `https://localhost:5001` or `http://localhost:5000`)
+2. **During event**:
+   - Keep admin screen private
+   - Display screen visible to all
+   - Enter results immediately after matches
+   - Check group standings after each round
 
-## How to Use
+3. **Between stages**:
+   - 15-minute break after group stage
+   - Verify all group matches completed
+   - Knockout fixtures auto-generate
 
-### Step 1: Add Teams
-1. Go to the **Teams** page
-2. Click "Add Team" button
-3. Fill in:
-   - Team name (e.g., "The Legends")
-   - Player 1 and Player 2 names
-   - Club/Country representation
-4. Repeat until all 16 teams are added
+## 🎮 Color Coding
 
-### Step 2: Main Competition
-1. Navigate to **Main Competition**
-2. Click "Generate Fixtures" to create all 120 matches
-3. Enter match results as games are played
-4. View the live standings table
-5. Once all matches are complete, click "Split into Champions & Europa League"
+- **🔵 Blue**: Group A, Champions League
+- **🟠 Orange**: Group B, Europa League  
+- **🟢 Green**: Completed matches, scores
+- **🔴 Red**: Live matches
+- **⏱️ Cyan**: Upcoming matches
 
-### Step 3: Split Leagues
-1. Navigate to **Champions & Europa League**
-2. Enter results for Champions League matches (top 4 teams)
-3. Enter results for Europa League matches (bottom 4 teams)
-4. Crown your champions! 🏆
+## 📱 Browser Compatibility
 
-## Features in Detail
+- Chrome (recommended for display screen)
+- Edge
+- Firefox
+- Safari
 
-### Standings Calculation
-- **Points**: 3 for win, 1 for draw, 0 for loss
-- **Tie-breakers**: 
-  1. Goal difference
-  2. Goals scored
+## 🏅 Credits
 
-### Match Management
-- Enter new results
-- Edit existing results
-- Automatic statistics updates
-- Visual feedback for played/unplayed matches
-
-### League Split Logic
-- Top 4 teams → Champions League
-- Bottom 4 teams → Europa League
-- Middle 8 teams do not participate in split leagues
-- Each split league runs a round-robin tournament (6 matches each)
-
-## Design Highlights
-
-- **Color Scheme**:
-  - Primary: Football pitch green (#1a472a)
-  - Champions League: Blue (#0066cc)
-  - Europa League: Orange (#ff6600)
-- **Responsive Design**: Works on desktop, tablet, and mobile
-- **Playful Elements**: Emoji icons, gradient backgrounds, hover effects
-- **Professional Layout**: Clean tables, organized cards, clear navigation
-
-## Future Enhancements (Optional)
-
-- Data persistence (JSON file or database)
-- Match scheduling with dates/times
-- Player statistics (top scorers, assists)
-- Knockout rounds after group stages
-- Export results to PDF
-- Match history and replay system
-- Image uploads for teams/players
-
-## License
-
-This is a custom application for Betabit FC26 competitions.
+Built for Betabit FC26 competitions with EA FC26-inspired design.
 
 ---
 
-**Enjoy your FC26 Competition! ⚽🏆**
+**Ready to kick off your tournament! ⚽🎮🏆**

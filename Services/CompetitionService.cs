@@ -1,113 +1,416 @@
-namespace FC26Competition.Services;
-
+using FC26Competition.Data;
 using FC26Competition.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace FC26Competition.Services;
 
 public class CompetitionService
 {
-    private readonly List<Team> _teams = new();
-    private readonly List<Match> _matches = new();
+    private readonly IDbContextFactory<FC26CompetitionContext> _contextFactory;
 
     public event Action? OnChange;
 
-    // Team Management
-    public IReadOnlyList<Team> GetAllTeams() => _teams.AsReadOnly();
-
-    public void AddTeam(Team team)
+    public CompetitionService(IDbContextFactory<FC26CompetitionContext> contextFactory)
     {
-        if (_teams.Count >= 16)
+        _contextFactory = contextFactory;
+    }
+
+    // Team Management
+    public async Task<List<Team>> GetAllTeamsAsync()
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.Teams.OrderBy(t => t.TeamName).ToListAsync();
+    }
+
+    public async Task AddTeamAsync(Team team)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
+        var count = await context.Teams.CountAsync();
+        if (count >= 8)
         {
-            throw new InvalidOperationException("Maximum 16 teams allowed");
+            throw new InvalidOperationException("Maximum 8 teams allowed");
         }
-        _teams.Add(team);
+        
+        context.Teams.Add(team);
+        await context.SaveChangesAsync();
         NotifyStateChanged();
     }
 
-    public void UpdateTeam(Team team)
+    public async Task UpdateTeamAsync(Team team)
     {
-        var existingTeam = _teams.FirstOrDefault(t => t.Id == team.Id);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
+        var existingTeam = await context.Teams.FindAsync(team.Id);
         if (existingTeam == null) return;
 
         existingTeam.TeamName = team.TeamName;
         existingTeam.Player1Name = team.Player1Name;
         existingTeam.Player2Name = team.Player2Name;
         existingTeam.ClubCountry = team.ClubCountry;
+        
+        await context.SaveChangesAsync();
         NotifyStateChanged();
     }
 
-    public void DeleteTeam(Guid teamId)
+    public async Task DeleteTeamAsync(Guid teamId)
     {
-        _teams.RemoveAll(t => t.Id == teamId);
-        _matches.RemoveAll(m => m.HomeTeamId == teamId || m.AwayTeamId == teamId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
+        var team = await context.Teams.FindAsync(teamId);
+        if (team != null)
+        {
+            context.Teams.Remove(team);
+        }
+        
+        var matches = await context.Matches
+            .Where(m => m.HomeTeamId == teamId || m.AwayTeamId == teamId)
+            .ToListAsync();
+        context.Matches.RemoveRange(matches);
+        
+        await context.SaveChangesAsync();
         NotifyStateChanged();
     }
 
-    public Team? GetTeam(Guid teamId) => _teams.FirstOrDefault(t => t.Id == teamId);
+    public async Task<Team?> GetTeamAsync(Guid teamId)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.Teams.FindAsync(teamId);
+    }
+
+    // Group Assignment
+    public async Task AssignGroupsAsync(List<Guid> groupATeamIds, List<Guid> groupBTeamIds)
+    {
+        if (groupATeamIds.Count != 4 || groupBTeamIds.Count != 4)
+        {
+            throw new InvalidOperationException("Each group must have exactly 4 teams");
+        }
+
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
+        foreach (var teamId in groupATeamIds)
+        {
+            var team = await context.Teams.FindAsync(teamId);
+            if (team != null)
+            {
+                team.GroupName = GroupName.GroupA;
+                team.ResetStatistics();
+            }
+        }
+        
+        foreach (var teamId in groupBTeamIds)
+        {
+            var team = await context.Teams.FindAsync(teamId);
+            if (team != null)
+            {
+                team.GroupName = GroupName.GroupB;
+                team.ResetStatistics();
+            }
+        }
+        
+        await context.SaveChangesAsync();
+        NotifyStateChanged();
+    }
 
     // Match Management
-    public IReadOnlyList<Match> GetAllMatches() => _matches.AsReadOnly();
-
-    public IReadOnlyList<Match> GetMainCompetitionMatches() =>
-        _matches.Where(m => m.Phase == CompetitionPhase.MainCompetition).ToList().AsReadOnly();
-
-    public IReadOnlyList<Match> GetLeagueMatches(LeagueType leagueType) =>
-        _matches.Where(m => m.LeagueType == leagueType).ToList().AsReadOnly();
-
-    public void GenerateMainCompetitionFixtures()
+    public async Task<List<Match>> GetAllMatchesAsync()
     {
-        if (_teams.Count != 16)
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.Matches
+            .OrderBy(m => m.ScheduledTime)
+            .ThenBy(m => m.ScreenNumber)
+            .ToListAsync();
+    }
+
+    public async Task<List<Match>> GetGroupStageMatchesAsync()
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.Matches
+            .Where(m => m.Stage == MatchStage.GroupStage)
+            .OrderBy(m => m.ScheduledTime)
+            .ThenBy(m => m.ScreenNumber)
+            .ToListAsync();
+    }
+
+    public async Task<List<Match>> GetKnockoutMatchesAsync()
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.Matches
+            .Where(m => m.Stage == MatchStage.Knockout)
+            .OrderBy(m => m.LeagueType)
+            .ThenBy(m => m.KnockoutRound)
+            .ThenBy(m => m.ScheduledTime)
+            .ToListAsync();
+    }
+
+    public async Task GenerateGroupStageFixturesAsync(DateTime startTime)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
+        var teams = await context.Teams.ToListAsync();
+        var groupATeams = teams.Where(t => t.GroupName == GroupName.GroupA).ToList();
+        var groupBTeams = teams.Where(t => t.GroupName == GroupName.GroupB).ToList();
+
+        if (groupATeams.Count != 4 || groupBTeams.Count != 4)
         {
-            throw new InvalidOperationException("Exactly 16 teams required to generate fixtures");
+            throw new InvalidOperationException("Each group must have exactly 4 teams assigned");
         }
 
-        // Remove existing main competition matches
-        _matches.RemoveAll(m => m.Phase == CompetitionPhase.MainCompetition);
+        // Remove existing group stage matches
+        var existingMatches = await context.Matches
+            .Where(m => m.Stage == MatchStage.GroupStage)
+            .ToListAsync();
+        context.Matches.RemoveRange(existingMatches);
 
-        // Reset team statistics
-        foreach (var team in _teams)
+        var currentTime = startTime;
+        var matchPairs = new List<(Match match1, Match match2)>();
+
+        // Generate round-robin for Group A and Group B
+        var groupAMatches = GenerateRoundRobinMatches(groupATeams, GroupName.GroupA);
+        var groupBMatches = GenerateRoundRobinMatches(groupBTeams, GroupName.GroupB);
+
+        // Pair matches from both groups to be played simultaneously
+        for (int i = 0; i < groupAMatches.Count; i++)
         {
-            team.ResetStatistics();
+            var groupAMatch = groupAMatches[i];
+            var groupBMatch = groupBMatches[i];
+
+            groupAMatch.ScheduledTime = currentTime;
+            groupAMatch.ScreenNumber = 1;
+
+            groupBMatch.ScheduledTime = currentTime;
+            groupBMatch.ScreenNumber = 2;
+
+            context.Matches.Add(groupAMatch);
+            context.Matches.Add(groupBMatch);
+
+            currentTime = currentTime.AddMinutes(15);
         }
 
-        // Generate round-robin fixtures (each team plays every other team once)
-        for (int i = 0; i < _teams.Count; i++)
+        await context.SaveChangesAsync();
+        NotifyStateChanged();
+    }
+
+    private List<Match> GenerateRoundRobinMatches(List<Team> teams, GroupName groupName)
+    {
+        var matches = new List<Match>();
+        
+        for (int i = 0; i < teams.Count; i++)
         {
-            for (int j = i + 1; j < _teams.Count; j++)
+            for (int j = i + 1; j < teams.Count; j++)
             {
-                _matches.Add(new Match
+                matches.Add(new Match
                 {
-                    HomeTeamId = _teams[i].Id,
-                    AwayTeamId = _teams[j].Id,
-                    Phase = CompetitionPhase.MainCompetition
+                    HomeTeamId = teams[i].Id,
+                    AwayTeamId = teams[j].Id,
+                    Stage = MatchStage.GroupStage,
+                    GroupName = groupName
                 });
             }
         }
+        
+        return matches;
+    }
 
+    public async Task GenerateKnockoutFixturesAsync(DateTime startTime)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        // Check if all group stage matches are played
+        var groupMatches = await context.Matches
+            .Where(m => m.Stage == MatchStage.GroupStage)
+            .ToListAsync();
+
+        if (!groupMatches.All(m => m.IsPlayed))
+        {
+            throw new InvalidOperationException("All group stage matches must be completed first");
+        }
+
+        // Get group standings
+        var teams = await context.Teams.ToListAsync();
+        var groupAStandings = GetGroupStandings(teams, GroupName.GroupA);
+        var groupBStandings = GetGroupStandings(teams, GroupName.GroupB);
+
+        // Top 2 from each group go to Champions League
+        var championsTeams = new List<Team>
+        {
+            groupAStandings[0], // Group A 1st
+            groupBStandings[0], // Group B 1st
+            groupAStandings[1], // Group A 2nd
+            groupBStandings[1]  // Group B 2nd
+        };
+
+        // Bottom 2 from each group go to Europa League
+        var europaTeams = new List<Team>
+        {
+            groupAStandings[2], // Group A 3rd
+            groupBStandings[2], // Group B 3rd
+            groupAStandings[3], // Group A 4th
+            groupBStandings[3]  // Group B 4th
+        };
+
+        // Remove existing knockout matches
+        var existingKnockout = await context.Matches
+            .Where(m => m.Stage == MatchStage.Knockout)
+            .ToListAsync();
+        context.Matches.RemoveRange(existingKnockout);
+
+        var currentTime = startTime;
+
+        // Generate Champions League Semi-Finals
+        // Group A 1st vs Group B 2nd
+        context.Matches.Add(new Match
+        {
+            HomeTeamId = groupAStandings[0].Id,
+            AwayTeamId = groupBStandings[1].Id,
+            Stage = MatchStage.Knockout,
+            KnockoutRound = KnockoutRound.SemiFinal,
+            LeagueType = LeagueType.ChampionsLeague,
+            ScheduledTime = currentTime,
+            ScreenNumber = 1
+        });
+
+        // Europa League Semi-Final
+        // Group A 3rd vs Group B 4th
+        context.Matches.Add(new Match
+        {
+            HomeTeamId = groupAStandings[2].Id,
+            AwayTeamId = groupBStandings[3].Id,
+            Stage = MatchStage.Knockout,
+            KnockoutRound = KnockoutRound.SemiFinal,
+            LeagueType = LeagueType.EuropaLeague,
+            ScheduledTime = currentTime,
+            ScreenNumber = 2
+        });
+
+        currentTime = currentTime.AddMinutes(15);
+
+        // Generate second semi-finals
+        // Group B 1st vs Group A 2nd
+        context.Matches.Add(new Match
+        {
+            HomeTeamId = groupBStandings[0].Id,
+            AwayTeamId = groupAStandings[1].Id,
+            Stage = MatchStage.Knockout,
+            KnockoutRound = KnockoutRound.SemiFinal,
+            LeagueType = LeagueType.ChampionsLeague,
+            ScheduledTime = currentTime,
+            ScreenNumber = 1
+        });
+
+        // Group B 3rd vs Group A 4th
+        context.Matches.Add(new Match
+        {
+            HomeTeamId = groupBStandings[2].Id,
+            AwayTeamId = groupAStandings[3].Id,
+            Stage = MatchStage.Knockout,
+            KnockoutRound = KnockoutRound.SemiFinal,
+            LeagueType = LeagueType.EuropaLeague,
+            ScheduledTime = currentTime,
+            ScreenNumber = 2
+        });
+
+        currentTime = currentTime.AddMinutes(15);
+
+        // Generate Finals (TBD teams)
+        context.Matches.Add(new Match
+        {
+            HomeTeamId = Guid.Empty, // TBD
+            AwayTeamId = Guid.Empty, // TBD
+            Stage = MatchStage.Knockout,
+            KnockoutRound = KnockoutRound.Final,
+            LeagueType = LeagueType.ChampionsLeague,
+            ScheduledTime = currentTime,
+            ScreenNumber = 1
+        });
+
+        context.Matches.Add(new Match
+        {
+            HomeTeamId = Guid.Empty, // TBD
+            AwayTeamId = Guid.Empty, // TBD
+            Stage = MatchStage.Knockout,
+            KnockoutRound = KnockoutRound.Final,
+            LeagueType = LeagueType.EuropaLeague,
+            ScheduledTime = currentTime,
+            ScreenNumber = 2
+        });
+
+        await context.SaveChangesAsync();
         NotifyStateChanged();
     }
 
-    public void UpdateMatchResult(Guid matchId, int homeScore, int awayScore)
+    public async Task UpdateMatchResultAsync(Guid matchId, int homeScore, int awayScore)
     {
-        var match = _matches.FirstOrDefault(m => m.Id == matchId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        
+        var match = await context.Matches.FindAsync(matchId);
         if (match == null) return;
 
-        var homeTeam = GetTeam(match.HomeTeamId);
-        var awayTeam = GetTeam(match.AwayTeamId);
-        if (homeTeam == null || awayTeam == null) return;
-
-        // Remove old result if exists
-        if (match.IsPlayed)
+        // For knockout finals, check if this completes a semi-final and update final
+        if (match.Stage == MatchStage.Knockout && match.KnockoutRound == KnockoutRound.SemiFinal)
         {
-            RevertMatchStatistics(match, homeTeam, awayTeam);
+            var winnerId = match.HomeScore > match.AwayScore ? match.HomeTeamId : match.AwayTeamId;
+            
+            // Find the corresponding final
+            var final = await context.Matches
+                .FirstOrDefaultAsync(m => 
+                    m.Stage == MatchStage.Knockout && 
+                    m.KnockoutRound == KnockoutRound.Final &&
+                    m.LeagueType == match.LeagueType);
+
+            if (final != null)
+            {
+                // Get all semi-finals for this league
+                var semiFinals = await context.Matches
+                    .Where(m => 
+                        m.Stage == MatchStage.Knockout && 
+                        m.KnockoutRound == KnockoutRound.SemiFinal &&
+                        m.LeagueType == match.LeagueType)
+                    .ToListAsync();
+
+                if (semiFinals.Count == 2 && semiFinals.All(sf => sf.IsPlayed))
+                {
+                    var winner1 = semiFinals[0].GetWinnerId();
+                    var winner2 = semiFinals[1].GetWinnerId();
+
+                    if (winner1.HasValue && winner2.HasValue)
+                    {
+                        final.HomeTeamId = winner1.Value;
+                        final.AwayTeamId = winner2.Value;
+                    }
+                }
+            }
         }
 
-        // Update match
-        match.HomeScore = homeScore;
-        match.AwayScore = awayScore;
-        match.PlayedDate = DateTime.Now;
+        var homeTeam = await context.Teams.FindAsync(match.HomeTeamId);
+        var awayTeam = await context.Teams.FindAsync(match.AwayTeamId);
 
-        // Update team statistics
-        UpdateTeamStatistics(match, homeTeam, awayTeam);
+        // Only update team statistics for group stage matches
+        if (match.Stage == MatchStage.GroupStage && homeTeam != null && awayTeam != null)
+        {
+            // Remove old result if exists
+            if (match.HomeScore.HasValue && match.AwayScore.HasValue)
+            {
+                RevertMatchStatistics(match, homeTeam, awayTeam);
+            }
 
+            // Update match
+            match.HomeScore = homeScore;
+            match.AwayScore = awayScore;
+            match.PlayedDate = DateTime.Now;
+
+            // Update team statistics
+            UpdateTeamStatistics(match, homeTeam, awayTeam);
+        }
+        else
+        {
+            // For knockout matches, just update the score
+            match.HomeScore = homeScore;
+            match.AwayScore = awayScore;
+            match.PlayedDate = DateTime.Now;
+        }
+
+        await context.SaveChangesAsync();
         NotifyStateChanged();
     }
 
@@ -173,88 +476,10 @@ public class CompetitionService
         }
     }
 
-    // Split Competition
-    public bool CanSplitCompetition()
+    public List<Team> GetGroupStandings(List<Team> teams, GroupName groupName)
     {
-        var mainMatches = GetMainCompetitionMatches();
-        return mainMatches.Count > 0 && mainMatches.All(m => m.IsPlayed);
-    }
-
-    public void SplitCompetition()
-    {
-        if (!CanSplitCompetition())
-        {
-            throw new InvalidOperationException("All main competition matches must be completed first");
-        }
-
-        // Get sorted teams by standings
-        var sortedTeams = _teams
-            .OrderByDescending(t => t.Points)
-            .ThenByDescending(t => t.GoalDifference)
-            .ThenByDescending(t => t.GoalsFor)
-            .ToList();
-
-        var championsLeagueTeams = sortedTeams.Take(4).ToList();
-        var europaLeagueTeams = sortedTeams.Skip(12).Take(4).ToList();
-
-        // Remove existing split competition matches
-        _matches.RemoveAll(m => m.Phase != CompetitionPhase.MainCompetition);
-
-        // Generate Champions League fixtures
-        GenerateSplitLeagueFixtures(championsLeagueTeams, LeagueType.ChampionsLeague);
-
-        // Generate Europa League fixtures
-        GenerateSplitLeagueFixtures(europaLeagueTeams, LeagueType.EuropaLeague);
-
-        NotifyStateChanged();
-    }
-
-    private void GenerateSplitLeagueFixtures(List<Team> teams, LeagueType leagueType)
-    {
-        var phase = leagueType == LeagueType.ChampionsLeague 
-            ? CompetitionPhase.ChampionsLeague 
-            : CompetitionPhase.EuropaLeague;
-
-        for (int i = 0; i < teams.Count; i++)
-        {
-            for (int j = i + 1; j < teams.Count; j++)
-            {
-                _matches.Add(new Match
-                {
-                    HomeTeamId = teams[i].Id,
-                    AwayTeamId = teams[j].Id,
-                    Phase = phase,
-                    LeagueType = leagueType
-                });
-            }
-        }
-    }
-
-    public List<Team> GetLeagueStandings(LeagueType? leagueType = null)
-    {
-        IEnumerable<Team> teams = _teams;
-
-        if (leagueType == LeagueType.ChampionsLeague)
-        {
-            // Get top 4 teams based on main competition
-            teams = _teams
-                .OrderByDescending(t => t.Points)
-                .ThenByDescending(t => t.GoalDifference)
-                .ThenByDescending(t => t.GoalsFor)
-                .Take(4);
-        }
-        else if (leagueType == LeagueType.EuropaLeague)
-        {
-            // Get bottom 4 teams based on main competition
-            teams = _teams
-                .OrderByDescending(t => t.Points)
-                .ThenByDescending(t => t.GoalDifference)
-                .ThenByDescending(t => t.GoalsFor)
-                .Skip(12)
-                .Take(4);
-        }
-
         return teams
+            .Where(t => t.GroupName == groupName)
             .OrderByDescending(t => t.Points)
             .ThenByDescending(t => t.GoalDifference)
             .ThenByDescending(t => t.GoalsFor)

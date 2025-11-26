@@ -1,0 +1,39 @@
+.group-assignment {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.team-assignment-item {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.team-assignment-item:hover {
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.team-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.team-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.team-checkbox input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+}
+
+.gap-2 {
+    gap: 1rem;
+}

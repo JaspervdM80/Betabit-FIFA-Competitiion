@@ -9,8 +9,12 @@ public class Match
     public int? AwayScore { get; set; }
     public bool IsPlayed => HomeScore.HasValue && AwayScore.HasValue;
     public DateTime? PlayedDate { get; set; }
-    public CompetitionPhase Phase { get; set; }
+    public DateTime? ScheduledTime { get; set; }
+    public MatchStage Stage { get; set; }
+    public GroupName? GroupName { get; set; }
+    public KnockoutRound? KnockoutRound { get; set; }
     public LeagueType? LeagueType { get; set; }
+    public int? ScreenNumber { get; set; } // 1 or 2
     
     public string GetResult(Guid teamId)
     {
@@ -29,13 +33,26 @@ public class Match
             return "D";
         }
     }
+
+    public Guid? GetWinnerId()
+    {
+        if (!IsPlayed) return null;
+        if (HomeScore > AwayScore) return HomeTeamId;
+        if (AwayScore > HomeScore) return AwayTeamId;
+        return null; // Draw
+    }
 }
 
-public enum CompetitionPhase
+public enum MatchStage
 {
-    MainCompetition,
-    ChampionsLeague,
-    EuropaLeague
+    GroupStage,
+    Knockout
+}
+
+public enum KnockoutRound
+{
+    SemiFinal,
+    Final
 }
 
 public enum LeagueType

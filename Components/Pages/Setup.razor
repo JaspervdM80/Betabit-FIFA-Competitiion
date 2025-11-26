@@ -1,0 +1,114 @@
+@page "/setup"
+@using FC26Competition.Models
+@using FC26Competition.Services
+@inject NavigationManager Navigation
+@implements IDisposable
+@rendermode InteractiveServer
+
+<div class="page-header">
+    <h1 class="page-title">🎮 Competition Setup</h1>
+    <p class="page-description">Assign teams to groups and generate the schedule</p>
+</div>
+
+@if (teams.Count < 8)
+{
+    <div class="alert alert-warning">
+        <span>⚠️</span>
+        <span>Please register 8 teams before setting up the competition. Current teams: @teams.Count/8</span>
+    </div>
+    <button class="btn btn-primary" @onclick="() => Navigation.NavigateTo(\"/\")">
+        Go to Teams Management
+    </button>
+}
+else
+{
+    <div class="card mb-4">
+        <h2 style="margin-bottom: 1.5rem; color: var(--electric-blue);">⚽ Assign Teams to Groups</h2>
+        
+        <div class="grid grid-2">
+            <!-- Group A -->
+            <div>
+                <h3 style="color: var(--champions-blue); margin-bottom: 1rem;">🔵 Group A</h3>
+                <div class="group-assignment">
+                    @foreach (var team in teams)
+                    {
+                        <div class="team-assignment-item">
+                            <label class="team-checkbox">
+                                <input type="checkbox" 
+                                       checked="@groupATeamIds.Contains(team.Id)"
+                                       @onchange="() => ToggleGroupA(team.Id)"
+                                       disabled="@(groupATeamIds.Count >= 4 && !groupATeamIds.Contains(team.Id))" />
+                                <span>@team.TeamName</span>
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="mt-2" style="color: var(--text-secondary);">
+                    Selected: @groupATeamIds.Count/4 teams
+                </div>
+            </div>
+
+            <!-- Group B -->
+            <div>
+                <h3 style="color: var(--europa-orange); margin-bottom: 1rem;">🟠 Group B</h3>
+                <div class="group-assignment">
+                    @foreach (var team in teams)
+                    {
+                        <div class="team-assignment-item">
+                            <label class="team-checkbox">
+                                <input type="checkbox" 
+                                       checked="@groupBTeamIds.Contains(team.Id)"
+                                       @onchange="() => ToggleGroupB(team.Id)"
+                                       disabled="@(groupBTeamIds.Count >= 4 && !groupBTeamIds.Contains(team.Id))" />
+                                <span>@team.TeamName</span>
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="mt-2" style="color: var(--text-secondary);">
+                    Selected: @groupBTeamIds.Count/4 teams
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-warning mt-3">
+                <span>⚠️</span>
+                <span>@errorMessage</span>
+            </div>
+        }
+
+        <div class="mt-4">
+            <button class="btn btn-primary" 
+                    @onclick="SaveGroupAssignments"
+                    disabled="@(groupATeamIds.Count != 4 || groupBTeamIds.Count != 4 || HasOverlap())">
+                Save Group Assignments
+            </button>
+        </div>
+    </div>
+
+    @if (groupsAssigned)
+    {
+        <div class="card">
+            <h2 style="margin-bottom: 1.5rem; color: var(--electric-blue);">📅 Generate Schedule</h2>
+            
+            <div class="form-group" style="max-width: 300px;">
+                <label class="form-label">Start Time</label>
+                <input type="time" class="form-control" @bind="startTimeInput" />
+                <div class="mt-2" style="font-size: 0.9rem; color: var(--text-secondary);">
+                    Group Stage: 6 rounds × 15 min = 1h 30min<br/>
+                    Break: 15 minutes<br/>
+                    Knockout: 3 rounds × 15 min = 45min<br/>
+                    <strong>Total duration: ~2h 30min</strong>
+                </div>
+            </div>
+
+            <div class="mt-4 flex gap-2">
+                <button class="btn btn-primary" @onclick="GenerateSchedule">
+                    🎲 Generate Full Schedule
+                </button>
+            </div>
+        </div>
+    }
+}
