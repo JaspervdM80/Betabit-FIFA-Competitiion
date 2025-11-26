@@ -89,12 +89,40 @@
     color: var(--electric-blue);
 }
 
+.time-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--electric-blue);
+}
+
 .screen-badge {
     background: linear-gradient(135deg, var(--azure-blue), var(--electric-blue));
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 20px;
     font-size: 1rem;
+}
+
+.screen-badge-large {
+    background: linear-gradient(135deg, var(--azure-blue), var(--electric-blue));
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    font-size: 1.2rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    box-shadow: 0 4px 20px rgba(0, 120, 212, 0.5);
+    letter-spacing: 1px;
+}
+
+.screen-badge-large.screen-1 {
+    background: linear-gradient(135deg, #0066ff, #00aaff);
+    box-shadow: 0 4px 20px rgba(0, 102, 255, 0.5);
+}
+
+.screen-badge-large.screen-2 {
+    background: linear-gradient(135deg, #ff6600, #ff9933);
+    box-shadow: 0 4px 20px rgba(255, 102, 0, 0.5);
 }
 
 .match-teams-display {

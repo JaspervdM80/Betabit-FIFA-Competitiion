@@ -10,9 +10,7 @@ public partial class Setup : IDisposable
     private CompetitionService CompetitionService { get; set; } = default!;
 
     private List<Team> teams = new();
-    private HashSet<Guid> groupATeamIds = new();
-    private HashSet<Guid> groupBTeamIds = new();
-    private bool groupsAssigned = false;
+    private bool groupsGenerated = false;
     private TimeOnly? startTimeInput = new(18, 30);
     private string errorMessage = string.Empty;
 
@@ -23,6 +21,7 @@ public partial class Setup : IDisposable
     }
 
     private void GoToTeams() => Navigation.NavigateTo("/");
+    private void GoToAdmin() => Navigation.NavigateTo("/admin");
 
     private void OnCompetitionChanged()
     {
@@ -36,58 +35,40 @@ public partial class Setup : IDisposable
     private async Task LoadTeamsAsync()
     {
         teams = await CompetitionService.GetAllTeamsAsync();
-        groupATeamIds = teams.Where(t => t.GroupName == GroupName.GroupA).Select(t => t.Id).ToHashSet();
-        groupBTeamIds = teams.Where(t => t.GroupName == GroupName.GroupB).Select(t => t.Id).ToHashSet();
-        groupsAssigned = groupATeamIds.Count == 4 && groupBTeamIds.Count == 4;
+        
+        // Check if groups are already assigned
+        groupsGenerated = teams.Any(t => t.GroupName.HasValue);
     }
 
-    private void ToggleGroupA(Guid teamId)
+    private async Task GenerateCompetition()
     {
-        if (groupATeamIds.Contains(teamId))
-        {
-            groupATeamIds.Remove(teamId);
-        }
-        else if (groupATeamIds.Count < 4 && !groupBTeamIds.Contains(teamId))
-        {
-            groupATeamIds.Add(teamId);
-        }
-        errorMessage = string.Empty;
-    }
-
-    private void ToggleGroupB(Guid teamId)
-    {
-        if (groupBTeamIds.Contains(teamId))
-        {
-            groupBTeamIds.Remove(teamId);
-        }
-        else if (groupBTeamIds.Count < 4 && !groupATeamIds.Contains(teamId))
-        {
-            groupBTeamIds.Add(teamId);
-        }
-        errorMessage = string.Empty;
-    }
-
-    private bool HasOverlap() => groupATeamIds.Intersect(groupBTeamIds).Any();
-
-    private bool IsGroupACheckboxDisabled(Guid teamId) => groupATeamIds.Count >= 4 && !groupATeamIds.Contains(teamId);
-    private bool IsGroupBCheckboxDisabled(Guid teamId) => groupBTeamIds.Count >= 4 && !groupBTeamIds.Contains(teamId);
-    private bool IsSaveDisabled() => groupATeamIds.Count != 4 || groupBTeamIds.Count != 4 || HasOverlap();
-
-    private async Task SaveGroupAssignments()
-    {
-        if (groupATeamIds.Count != 4 || groupBTeamIds.Count != 4)
-        {
-            errorMessage = "Each group must have exactly 4 teams.";
-            return;
-        }
-        if (HasOverlap())
-        {
-            errorMessage = "Teams cannot be in both groups.";
-            return;
-        }
         try
         {
-            await CompetitionService.AssignGroupsAsync(groupATeamIds.ToList(), groupBTeamIds.ToList());
+            // Shuffle teams randomly
+            var random = new Random();
+            var shuffledTeams = teams.OrderBy(_ => random.Next()).ToList();
+
+            // Assign first 4 to Group A, last 4 to Group B
+            var groupATeamIds = shuffledTeams.Take(4).Select(t => t.Id).ToList();
+            var groupBTeamIds = shuffledTeams.Skip(4).Take(4).Select(t => t.Id).ToList();
+
+            // Assign groups
+            await CompetitionService.AssignGroupsAsync(groupATeamIds, groupBTeamIds);
+
+            // Generate schedule
+            var time = startTimeInput ?? new TimeOnly(18, 0);
+            var today = DateTime.Today;
+            var startTime = new DateTime(today.Year, today.Month, today.Day, time.Hour, time.Minute, 0);
+
+            // Generate group stage fixtures
+            await CompetitionService.GenerateGroupStageFixturesAsync(startTime);
+
+            // Calculate knockout start time (after group stage + break)
+            // 6 rounds of group stage × 15 min = 90 min
+            // + 15 min break = 105 min total
+            var knockoutStartTime = startTime.AddMinutes(105);
+            await CompetitionService.GenerateKnockoutFixturesAsync(knockoutStartTime);
+
             await LoadTeamsAsync();
             errorMessage = string.Empty;
         }
@@ -97,23 +78,24 @@ public partial class Setup : IDisposable
         }
     }
 
-    private async Task GenerateSchedule()
+    private async Task RegenerateCompetition()
     {
-        try
+        groupsGenerated = false;
+        
+        // Reset all team groups
+        foreach (var team in teams)
         {
-            var time = startTimeInput ?? new TimeOnly(18, 0);
-            var today = DateTime.Today;
-            var startTime = new DateTime(today.Year, today.Month, today.Day, time.Hour, time.Minute, 0);
-            await CompetitionService.GenerateGroupStageFixturesAsync(startTime);
-            var knockoutStartTime = startTime.AddMinutes(105);
-            await CompetitionService.GenerateKnockoutFixturesAsync(knockoutStartTime);
-            Navigation.NavigateTo("/admin");
+            team.GroupName = null;
+            team.ResetStatistics();
+            await CompetitionService.UpdateTeamAsync(team);
         }
-        catch (Exception ex)
-        {
-            errorMessage = ex.Message;
-        }
+        
+        await LoadTeamsAsync();
+        await GenerateCompetition();
     }
 
-    public void Dispose() => CompetitionService.OnChange -= OnCompetitionChanged;
+    public void Dispose()
+    {
+        CompetitionService.OnChange -= OnCompetitionChanged;
+    }
 }

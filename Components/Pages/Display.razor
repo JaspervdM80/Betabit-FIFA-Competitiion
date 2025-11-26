@@ -26,8 +26,8 @@
                     {
                         <div class="live-match-card @(match.IsPlayed ? "completed" : GetMatchStatus(match))">
                             <div class="match-time-display">
-                                @match.ScheduledTime?.ToString("HH:mm")
-                                <span class="screen-badge">Screen @match.ScreenNumber</span>
+                                <span class="time-text">@match.ScheduledTime?.ToString("HH:mm")</span>
+                                <span class="screen-badge-large screen-@match.ScreenNumber">📺 SCREEN @match.ScreenNumber</span>
                             </div>
                             <div class="match-teams-display">
                                 <div class="team-display">

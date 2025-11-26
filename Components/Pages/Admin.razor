@@ -12,11 +12,11 @@
 <div class="flex" style="gap: 1rem; margin-bottom: 2rem;">
     <button class="btn @(showGroupStage ? "btn-primary" : "btn-secondary")" 
             @onclick="() => showGroupStage = true">
-        Group Stage
+        ⚽ Group Stage
     </button>
     <button class="btn @(!showGroupStage ? "btn-primary" : "btn-secondary")" 
             @onclick="() => showGroupStage = false">
-        Knockout Stage
+        🏆 Knockout Stage
     </button>
 </div>
 
@@ -42,9 +42,12 @@
                 if (homeTeam != null && awayTeam != null)
                 {
                     <div class="admin-match-card @(match.IsPlayed ? "match-completed" : "")">
+                        <div class="screen-badge screen-@match.ScreenNumber">
+                            📺 SCREEN @match.ScreenNumber
+                        </div>
                         <div class="match-header">
                             <span class="match-time">
-                                @match.ScheduledTime?.ToString("HH:mm") - Screen @match.ScreenNumber
+                                @match.ScheduledTime?.ToString("HH:mm")
                             </span>
                             <span class="match-group">@match.GroupName</span>
                         </div>
@@ -102,9 +105,9 @@ else
     
     @if (!knockoutMatches.Any())
     {
-        <div class="alert alert-info">
-            <span>ℹ️</span>
-            <span>Knockout matches will be generated after all group stage matches are complete.</span>
+        <div class="alert alert-warning">
+            <span>⚠️</span>
+            <span>Knockout matches not yet generated. Go to Setup to generate the full competition.</span>
         </div>
     }
     else
@@ -112,15 +115,18 @@ else
         <!-- Champions League -->
         <h3 style="color: var(--champions-blue); margin: 2rem 0 1rem;">🏆 Champions League</h3>
         <div class="matches-container">
-            @foreach (var match in knockoutMatches.Where(m => m.LeagueType == LeagueType.ChampionsLeague))
+            @foreach (var match in knockoutMatches.Where(m => m.LeagueType == LeagueType.ChampionsLeague).OrderBy(m => m.KnockoutRound))
             {
                 var homeTeam = match.HomeTeamId != Guid.Empty ? GetTeam(match.HomeTeamId) : null;
                 var awayTeam = match.AwayTeamId != Guid.Empty ? GetTeam(match.AwayTeamId) : null;
                 
                 <div class="admin-match-card @(match.IsPlayed ? "match-completed" : "")">
+                    <div class="screen-badge screen-@match.ScreenNumber">
+                        📺 SCREEN @match.ScreenNumber
+                    </div>
                     <div class="match-header">
                         <span class="match-time">
-                            @match.ScheduledTime?.ToString("HH:mm") - Screen @match.ScreenNumber
+                            @match.ScheduledTime?.ToString("HH:mm")
                         </span>
                         <span class="match-round">@match.KnockoutRound</span>
                     </div>
@@ -171,7 +177,7 @@ else
                     }
                     else
                     {
-                        <div class="tbd-message">Teams TBD - Complete semi-finals first</div>
+                        <div class="tbd-message">⏳ Teams TBD - Complete semi-finals first</div>
                     }
                 </div>
             }
@@ -180,15 +186,18 @@ else
         <!-- Europa League -->
         <h3 style="color: var(--europa-orange); margin: 2rem 0 1rem;">🥈 Europa League</h3>
         <div class="matches-container">
-            @foreach (var match in knockoutMatches.Where(m => m.LeagueType == LeagueType.EuropaLeague))
+            @foreach (var match in knockoutMatches.Where(m => m.LeagueType == LeagueType.EuropaLeague).OrderBy(m => m.KnockoutRound))
             {
                 var homeTeam = match.HomeTeamId != Guid.Empty ? GetTeam(match.HomeTeamId) : null;
                 var awayTeam = match.AwayTeamId != Guid.Empty ? GetTeam(match.AwayTeamId) : null;
                 
                 <div class="admin-match-card @(match.IsPlayed ? "match-completed" : "")">
+                    <div class="screen-badge screen-@match.ScreenNumber">
+                        📺 SCREEN @match.ScreenNumber
+                    </div>
                     <div class="match-header">
                         <span class="match-time">
-                            @match.ScheduledTime?.ToString("HH:mm") - Screen @match.ScreenNumber
+                            @match.ScheduledTime?.ToString("HH:mm")
                         </span>
                         <span class="match-round">@match.KnockoutRound</span>
                     </div>
@@ -239,7 +248,7 @@ else
                     }
                     else
                     {
-                        <div class="tbd-message">Teams TBD - Complete semi-finals first</div>
+                        <div class="tbd-message">⏳ Teams TBD - Complete semi-finals first</div>
                     }
                 </div>
             }

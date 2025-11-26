@@ -7,7 +7,7 @@
 
 <div class="page-header">
     <h1 class="page-title">🎮 Competition Setup</h1>
-    <p class="page-description">Assign teams to groups and generate the schedule</p>
+    <p class="page-description">Generate random groups and competition schedule</p>
 </div>
 
 @if (teams.Count < 8)
@@ -22,77 +22,21 @@
 }
 else
 {
-    <div class="card mb-4">
-        <h2 style="margin-bottom: 1.5rem; color: var(--electric-blue);">⚽ Assign Teams to Groups</h2>
-        
-        <div class="grid grid-2">
-            <!-- Group A -->
-            <div>
-                <h3 style="color: var(--champions-blue); margin-bottom: 1rem;">🔵 Group A</h3>
-                <div class="group-assignment">
-                    @foreach (var team in teams)
-                    {
-                        <div class="team-assignment-item">
-                            <label class="team-checkbox">
-                                <input type="checkbox" 
-                                       checked="@groupATeamIds.Contains(team.Id)"
-                                       @onchange="() => ToggleGroupA(team.Id)"
-                                       disabled="@IsGroupACheckboxDisabled(team.Id)" />
-                                <span>@team.TeamName</span>
-                            </label>
-                        </div>
-                    }
-                </div>
-                <div class="mt-2" style="color: var(--text-secondary);">
-                    Selected: @groupATeamIds.Count/4 teams
-                </div>
-            </div>
-
-            <!-- Group B -->
-            <div>
-                <h3 style="color: var(--europa-orange); margin-bottom: 1rem;">🟠 Group B</h3>
-                <div class="group-assignment">
-                    @foreach (var team in teams)
-                    {
-                        <div class="team-assignment-item">
-                            <label class="team-checkbox">
-                                <input type="checkbox" 
-                                       checked="@groupBTeamIds.Contains(team.Id)"
-                                       @onchange="() => ToggleGroupB(team.Id)"
-                                       disabled="@IsGroupBCheckboxDisabled(team.Id)" />
-                                <span>@team.TeamName</span>
-                            </label>
-                        </div>
-                    }
-                </div>
-                <div class="mt-2" style="color: var(--text-secondary);">
-                    Selected: @groupBTeamIds.Count/4 teams
-                </div>
-            </div>
-        </div>
-
-        @if (!string.IsNullOrWhiteSpace(errorMessage))
-        {
-            <div class="alert alert-warning mt-3">
-                <span>⚠️</span>
-                <span>@errorMessage</span>
-            </div>
-        }
-
-        <div class="mt-4">
-            <button class="btn btn-primary" 
-                    @onclick="SaveGroupAssignments"
-                    disabled="@IsSaveDisabled()">
-                Save Group Assignments
-            </button>
-        </div>
-    </div>
-
-    @if (groupsAssigned)
+    @if (!groupsGenerated)
     {
         <div class="card">
-            <h2 style="margin-bottom: 1.5rem; color: var(--electric-blue);">📅 Generate Schedule</h2>
+            <h2 style="margin-bottom: 1.5rem; color: var(--electric-blue);">🎲 Generate Competition</h2>
             
+            <p style="margin-bottom: 1.5rem; font-size: 1.1rem;">
+                This will automatically:
+            </p>
+            <ul style="margin-bottom: 2rem; font-size: 1.05rem; line-height: 1.8;">
+                <li>✅ Randomly assign 8 teams into 2 groups (4 teams each)</li>
+                <li>✅ Generate group stage fixtures (12 matches - 6 rounds)</li>
+                <li>✅ Generate knockout fixtures (6 matches - 3 rounds)</li>
+                <li>✅ Schedule matches on 2 screens simultaneously</li>
+            </ul>
+
             <div class="form-group" style="max-width: 300px;">
                 <label class="form-label">Start Time</label>
                 <input type="time" class="form-control" @bind-value="startTimeInput" @bind-value:format="HH:mm" />
@@ -104,9 +48,65 @@ else
                 </div>
             </div>
 
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-warning mt-3">
+                    <span>⚠️</span>
+                    <span>@errorMessage</span>
+                </div>
+            }
+
             <div class="mt-4 flex gap-2">
-                <button class="btn btn-primary" @onclick="GenerateSchedule">
-                    🎲 Generate Full Schedule
+                <button class="btn btn-primary btn-large" @onclick="GenerateCompetition">
+                    🚀 Generate Competition
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <h2 style="margin-bottom: 1.5rem; color: var(--neon-green);">✅ Competition Generated!</h2>
+            
+            <div class="grid grid-2 mb-4">
+                <div class="group-display">
+                    <h3 style="color: var(--champions-blue); margin-bottom: 1rem;">🔵 Group A</h3>
+                    <ul>
+                        @foreach (var team in teams.Where(t => t.GroupName == GroupName.GroupA))
+                        {
+                            <li>@team.TeamName</li>
+                        }
+                    </ul>
+                </div>
+                <div class="group-display">
+                    <h3 style="color: var(--europa-orange); margin-bottom: 1rem;">🟠 Group B</h3>
+                    <ul>
+                        @foreach (var team in teams.Where(t => t.GroupName == GroupName.GroupB))
+                        {
+                            <li>@team.TeamName</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;">
+                    <strong>Start Time:</strong> @startTimeInput
+                </p>
+                <p style="font-size: 1.05rem; color: var(--text-secondary);">
+                    All fixtures have been generated with matches scheduled on both screens!
+                </p>
+            </div>
+
+            <div class="mt-4 flex gap-2">
+                <button class="btn btn-primary" @onclick="GoToAdmin">
+                    Go to Admin Panel
+                </button>
+                <a class="btn btn-secondary" href="/display" target="_blank">
+                    Open Display Screen
+                </a>
+                <button class="btn btn-danger" @onclick="RegenerateCompetition">
+                    🔄 Regenerate
                 </button>
             </div>
         </div>
