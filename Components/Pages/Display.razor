@@ -12,181 +12,175 @@
         <div class="current-time">@currentTime.ToString("HH:mm:ss")</div>
     </div>
 
-    <div class="display-content">
-        <!-- Current/Next Matches -->
-        <div class="section-highlight">
-            <h2 class="section-title">🔴 LIVE / NEXT UP</h2>
-            <div class="live-matches">
-                @foreach (var match in GetCurrentAndNextMatches().Take(4))
-                {
-                    var homeTeam = GetTeam(match.HomeTeamId);
-                    var awayTeam = GetTeam(match.AwayTeamId);
-                    
-                    if (homeTeam != null && awayTeam != null)
-                    {
-                        <div class="live-match-card @(match.IsPlayed ? "completed" : GetMatchStatus(match))">
-                            <div class="match-time-display">
-                                <span class="time-text">@match.ScheduledTime?.ToString("HH:mm")</span>
-                                <span class="screen-badge-large screen-@match.ScreenNumber">📺 SCREEN @match.ScreenNumber</span>
-                            </div>
-                            <div class="match-teams-display">
-                                <div class="team-display">
-                                    <div class="team-name-large">@homeTeam.TeamName</div>
-                                    <div class="team-score-large">@(match.HomeScore?.ToString() ?? "-")</div>
-                                </div>
-                                <div class="vs-large">VS</div>
-                                <div class="team-display">
-                                    <div class="team-score-large">@(match.AwayScore?.ToString() ?? "-")</div>
-                                    <div class="team-name-large">@awayTeam.TeamName</div>
-                                </div>
-                            </div>
-                            @if (match.IsPlayed)
-                            {
-                                <div class="match-status completed-badge">✅ FINAL</div>
-                            }
-                            else if (IsMatchLive(match))
-                            {
-                                <div class="match-status live-badge">🔴 LIVE</div>
-                            }
-                            else
-                            {
-                                <div class="match-status upcoming-badge">⏱️ @GetTimeUntil(match)</div>
-                            }
-                        </div>
-                    }
-                }
-            </div>
-        </div>
-
-        <!-- Group Standings -->
-        @if (groupMatches.Any())
-        {
-            <div class="standings-container">
-                <div class="group-standings">
-                    <h3 class="group-title">🔵 GROUP A</h3>
-                    <table class="standings-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Team</th>
-                                <th>P</th>
-                                <th>W</th>
-                                <th>D</th>
-                                <th>L</th>
-                                <th>GD</th>
-                                <th>PTS</th>
+    <div class="display-content tables-fixtures-grid">
+        <!-- Row 1: Group A standings + Group A fixtures -->
+        <div class="grid-item">
+            <div class="group-standings">
+                <h3 class="group-title">🔵 GROUP A</h3>
+                <table class="standings-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Team</th>
+                            <th>P</th>
+                            <th>W</th>
+                            <th>D</th>
+                            <th>L</th>
+                            <th>GD</th>
+                            <th>PTS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var groupAStandings = CompetitionService.GetGroupStandings(teams, GroupName.GroupA);
+                            int pos = 1;
+                        }
+                        @foreach (var team in groupAStandings)
+                        {
+                            <tr class="@(pos <= 2 ? "qualify-cl" : "qualify-el")">
+                                <td class="pos">@pos</td>
+                                <td class="team-cell">@team.TeamName</td>
+                                <td>@team.Played</td>
+                                <td>@team.Won</td>
+                                <td>@team.Drawn</td>
+                                <td>@team.Lost</td>
+                                <td>@team.GoalDifference</td>
+                                <td class="pts">@team.Points</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                var groupAStandings = CompetitionService.GetGroupStandings(teams, GroupName.GroupA);
-                                int pos = 1;
-                            }
-                            @foreach (var team in groupAStandings)
-                            {
-                                <tr class="@(pos <= 2 ? "qualify-cl" : "qualify-el")">
-                                    <td class="pos">@pos</td>
-                                    <td class="team-cell">@team.TeamName</td>
-                                    <td>@team.Played</td>
-                                    <td>@team.Won</td>
-                                    <td>@team.Drawn</td>
-                                    <td>@team.Lost</td>
-                                    <td>@team.GoalDifference</td>
-                                    <td class="pts">@team.Points</td>
-                                </tr>
-                                pos++;
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="group-standings">
-                    <h3 class="group-title">🟠 GROUP B</h3>
-                    <table class="standings-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Team</th>
-                                <th>P</th>
-                                <th>W</th>
-                                <th>D</th>
-                                <th>L</th>
-                                <th>GD</th>
-                                <th>PTS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                var groupBStandings = CompetitionService.GetGroupStandings(teams, GroupName.GroupB);
-                                pos = 1;
-                            }
-                            @foreach (var team in groupBStandings)
-                            {
-                                <tr class="@(pos <= 2 ? "qualify-cl" : "qualify-el")">
-                                    <td class="pos">@pos</td>
-                                    <td class="team-cell">@team.TeamName</td>
-                                    <td>@team.Played</td>
-                                    <td>@team.Won</td>
-                                    <td>@team.Drawn</td>
-                                    <td>@team.Lost</td>
-                                    <td>@team.GoalDifference</td>
-                                    <td class="pts">@team.Points</td>
-                                </tr>
-                                pos++;
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                            pos++;
+                        }
+                    </tbody>
+                </table>
             </div>
-
-            <div class="legend">
+            <div class="legend compact-legend">
                 <span class="legend-item"><span class="legend-cl">█</span> Top 2 → Champions League</span>
                 <span class="legend-item"><span class="legend-el">█</span> Bottom 2 → Europa League</span>
             </div>
-        }
-
-        <!-- All Upcoming Matches -->
-        <div class="all-matches-section">
-            <h2 class="section-title">📅 SCHEDULE</h2>
-            <div class="matches-grid">
-                @foreach (var match in allMatches.Where(m => !m.IsPlayed).OrderBy(m => m.ScheduledTime))
+        </div>
+        <div class="grid-item">
+            <h3 class="group-title fixtures-title">📅 GROUP A FIXTURES</h3>
+            <div class="compact-fixtures">
+                @foreach (var match in allMatches
+                    .Where(m => m.Stage == MatchStage.GroupStage && m.GroupName == GroupName.GroupA)
+                    .OrderBy(m => m.ScheduledTime)
+                    .Take(8))
                 {
-                    var homeTeam = match.HomeTeamId != Guid.Empty ? GetTeam(match.HomeTeamId) : null;
-                    var awayTeam = match.AwayTeamId != Guid.Empty ? GetTeam(match.AwayTeamId) : null;
-                    
-                    if (homeTeam != null && awayTeam != null)
-                    {
-                        <div class="schedule-match">
-                            <div class="schedule-time">@match.ScheduledTime?.ToString("HH:mm")</div>
-                            <div class="schedule-teams">
-                                <span>@homeTeam.TeamName</span>
-                                <span class="vs-small">vs</span>
-                                <span>@awayTeam.TeamName</span>
-                            </div>
-                            <div class="schedule-info">
-                                @if (match.Stage == MatchStage.GroupStage)
-                                {
-                                    <span>@match.GroupName</span>
-                                }
-                                else
-                                {
-                                    <span>@match.LeagueType - @match.KnockoutRound</span>
-                                }
-                            </div>
-                        </div>
-                    }
-                    else if (match.Stage == MatchStage.Knockout)
-                    {
-                        <div class="schedule-match tbd">
-                            <div class="schedule-time">@match.ScheduledTime?.ToString("HH:mm")</div>
-                            <div class="schedule-teams">TBD vs TBD</div>
-                            <div class="schedule-info">
-                                <span>@match.LeagueType - @match.KnockoutRound</span>
-                            </div>
-                        </div>
-                    }
+                    var homeTeam = GetTeam(match.HomeTeamId);
+                    var awayTeam = GetTeam(match.AwayTeamId);
+                    if (homeTeam == null || awayTeam == null) { continue; }
+                    <div class="fixture-row">
+                        <span class="fixture-time">@match.ScheduledTime?.ToString("HH:mm")</span>
+                        <span class="fixture-teams">
+                            @homeTeam.TeamName <span class="vs-small">vs</span> @awayTeam.TeamName
+                            @if (match.IsPlayed || (match.HomeScore.HasValue && match.AwayScore.HasValue))
+                            {
+                                <span class="fixture-score">@match.HomeScore - @match.AwayScore</span>
+                            }
+                        </span>
+                        <span class="fixture-screen screen-@match.ScreenNumber">Screen @match.ScreenNumber</span>
+                    </div>
                 }
             </div>
         </div>
+
+        <!-- Row 2: Group B standings + Group B fixtures -->
+        <div class="grid-item">
+            <div class="group-standings">
+                <h3 class="group-title">🟠 GROUP B</h3>
+                <table class="standings-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Team</th>
+                            <th>P</th>
+                            <th>W</th>
+                            <th>D</th>
+                            <th>L</th>
+                            <th>GD</th>
+                            <th>PTS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var groupBStandings = CompetitionService.GetGroupStandings(teams, GroupName.GroupB);
+                            int posB = 1;
+                        }
+                        @foreach (var team in groupBStandings)
+                        {
+                            <tr class="@(posB <= 2 ? "qualify-cl" : "qualify-el")">
+                                <td class="pos">@posB</td>
+                                <td class="team-cell">@team.TeamName</td>
+                                <td>@team.Played</td>
+                                <td>@team.Won</td>
+                                <td>@team.Drawn</td>
+                                <td>@team.Lost</td>
+                                <td>@team.GoalDifference</td>
+                                <td class="pts">@team.Points</td>
+                            </tr>
+                            posB++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="legend compact-legend">
+                <span class="legend-item"><span class="legend-cl">█</span> Top 2 → Champions League</span>
+                <span class="legend-item"><span class="legend-el">█</span> Bottom 2 → Europa League</span>
+            </div>
+        </div>
+        <div class="grid-item">
+            <h3 class="group-title fixtures-title">📅 GROUP B FIXTURES</h3>
+            <div class="compact-fixtures">
+                @foreach (var match in allMatches
+                    .Where(m => m.Stage == MatchStage.GroupStage && m.GroupName == GroupName.GroupB)
+                    .OrderBy(m => m.ScheduledTime)
+                    .Take(8))
+                {
+                    var homeTeam = GetTeam(match.HomeTeamId);
+                    var awayTeam = GetTeam(match.AwayTeamId);
+                    if (homeTeam == null || awayTeam == null) { continue; }
+                    <div class="fixture-row">
+                        <span class="fixture-time">@match.ScheduledTime?.ToString("HH:mm")</span>
+                        <span class="fixture-teams">
+                            @homeTeam.TeamName <span class="vs-small">vs</span> @awayTeam.TeamName
+                            @if (match.IsPlayed || (match.HomeScore.HasValue && match.AwayScore.HasValue))
+                            {
+                                <span class="fixture-score">@match.HomeScore - @match.AwayScore</span>
+                            }
+                        </span>
+                        <span class="fixture-screen screen-@match.ScreenNumber">Screen @match.ScreenNumber</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Knockout fixtures full width with meta aligned left/center/right -->
+        @if (knockoutMatches.Any())
+        {
+            <div class="grid-item span-2">
+                <h3 class="group-title fixtures-title">🏆 Knockout Fixtures</h3>
+                <div class="compact-fixtures knockout-fullwidth">
+                    @foreach (var match in knockoutMatches.OrderBy(m => m.ScheduledTime))
+                    {
+                        var homeTeam = match.HomeTeamId != Guid.Empty ? GetTeam(match.HomeTeamId) : null;
+                        var awayTeam = match.AwayTeamId != Guid.Empty ? GetTeam(match.AwayTeamId) : null;
+                        var leagueClass = match.LeagueType == LeagueType.ChampionsLeague ? "cl-badge" : "el-badge";
+                        var finalClass = match.KnockoutRound == KnockoutRound.Final ? "final-glow" : null;
+                        <div class="fixture-row two-line knockout-card @finalClass">
+                            <div class="fixture-meta knockout-meta">
+                                <span class="fixture-time">@match.ScheduledTime?.ToString("HH:mm")</span>
+                                <span class="knockout-badge @leagueClass">@match.LeagueType - @match.KnockoutRound</span>
+                                <span class="fixture-screen screen-@match.ScreenNumber">Screen @match.ScreenNumber</span>
+                            </div>
+                            <div class="fixture-teams">@(homeTeam?.TeamName ?? "TBD") <span class="vs-small">vs</span> @(awayTeam?.TeamName ?? "TBD")
+                                @if (match.IsPlayed || (match.HomeScore.HasValue && match.AwayScore.HasValue))
+                                {
+                                    <span class="fixture-score">@match.HomeScore - @match.AwayScore</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
     </div>
 </div>

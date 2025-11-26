@@ -163,7 +163,6 @@ public class CompetitionService
         context.Matches.RemoveRange(existingMatches);
 
         var currentTime = startTime;
-        var matchPairs = new List<(Match match1, Match match2)>();
 
         // Generate round-robin for Group A and Group B
         var groupAMatches = GenerateRoundRobinMatches(groupATeams, GroupName.GroupA);
@@ -176,10 +175,19 @@ public class CompetitionService
             var groupBMatch = groupBMatches[i];
 
             groupAMatch.ScheduledTime = currentTime;
-            groupAMatch.ScreenNumber = 1;
-
             groupBMatch.ScheduledTime = currentTime;
-            groupBMatch.ScreenNumber = 2;
+
+            // Alternate screens each round to split screen usage evenly per group
+            if (i % 2 == 0)
+            {
+                groupAMatch.ScreenNumber = 1;
+                groupBMatch.ScreenNumber = 2;
+            }
+            else
+            {
+                groupAMatch.ScreenNumber = 2;
+                groupBMatch.ScreenNumber = 1;
+            }
 
             context.Matches.Add(groupAMatch);
             context.Matches.Add(groupBMatch);

@@ -21,10 +21,11 @@ public partial class Display : IDisposable
         await LoadDataAsync();
         CompetitionService.OnChange += OnCompetitionChanged;
         
-        // Auto-refresh every 5 seconds
+        // Auto-refresh every 5 seconds: reload data and re-render
         refreshTimer = new System.Threading.Timer(async _ =>
         {
             currentTime = DateTime.Now;
+            await LoadDataAsync();
             await InvokeAsync(StateHasChanged);
         }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
     }
