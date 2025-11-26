@@ -1,0 +1,342 @@
+@page "/split-leagues"
+@using FC26Competition.Models
+@using FC26Competition.Services
+@inject CompetitionService CompetitionService
+@implements IDisposable
+@rendermode InteractiveServer
+
+<div class="page-header">
+    <h1 class="page-title">🏆 Champions & Europa League</h1>
+    <p class="page-description">Top 4 and bottom 4 teams competing for their respective championships</p>
+</div>
+
+@if (!HasSplitLeagues())
+{
+    <div class="alert alert-info">
+        <span>ℹ️</span>
+        <span>The leagues haven't been split yet. Complete all matches in the main competition first.</span>
+    </div>
+}
+else
+{
+    <div class="grid grid-2">
+        <!-- Champions League -->
+        <div>
+            <div class="table-container league-table">
+                <div class="league-table-header champions-league-header">
+                    🏆 Betabit Champions League
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th class="table-position">#</th>
+                            <th>Team</th>
+                            <th class="table-stats">P</th>
+                            <th class="table-stats">W</th>
+                            <th class="table-stats">D</th>
+                            <th class="table-stats">L</th>
+                            <th class="table-stats">GF</th>
+                            <th class="table-stats">GA</th>
+                            <th class="table-stats">GD</th>
+                            <th class="table-stats">Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var clPosition = 1;
+                        }
+                        @foreach (var team in GetChampionsLeagueStandings())
+                        {
+                            <tr class="@(clPosition == 1 ? "champion-row" : "")">
+                                <td class="table-position">
+                                    @if (clPosition == 1)
+                                    {
+                                        <span>👑</span>
+                                    }
+                                    else
+                                    {
+                                        @clPosition
+                                    }
+                                </td>
+                                <td class="table-team">@team.TeamName</td>
+                                <td class="table-stats">@team.Played</td>
+                                <td class="table-stats">@team.Won</td>
+                                <td class="table-stats">@team.Drawn</td>
+                                <td class="table-stats">@team.Lost</td>
+                                <td class="table-stats">@team.GoalsFor</td>
+                                <td class="table-stats">@team.GoalsAgainst</td>
+                                <td class="table-stats">@team.GoalDifference</td>
+                                <td class="table-stats"><strong>@team.Points</strong></td>
+                            </tr>
+                            clPosition++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card mt-3">
+                <h3 style="color: var(--champions-color); margin-bottom: 1rem;">⚽ Champions League Fixtures</h3>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    @foreach (var match in championsLeagueMatches.OrderBy(m => m.IsPlayed))
+                    {
+                        var homeTeam = GetTeam(match.HomeTeamId);
+                        var awayTeam = GetTeam(match.AwayTeamId);
+                        if (homeTeam != null && awayTeam != null)
+                        {
+                            <div class="match-card" style="border-left: 3px solid var(--champions-color);">
+                                <div class="match-team">@homeTeam.TeamName</div>
+                                @if (!match.IsPlayed)
+                                {
+                                    <div class="match-score">
+                                        <input type="number" 
+                                               class="match-score-input" 
+                                               min="0" 
+                                               @bind="@homeScores[match.Id]" 
+                                               placeholder="0" />
+                                        <span class="match-vs">vs</span>
+                                        <input type="number" 
+                                               class="match-score-input" 
+                                               min="0" 
+                                               @bind="@awayScores[match.Id]" 
+                                               placeholder="0" />
+                                        <button class="btn btn-champions" 
+                                                style="padding: 0.5rem 1rem; margin-left: 0.5rem;"
+                                                @onclick="() => SaveMatchResult(match)">
+                                            Save
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="match-score">
+                                        <strong>@match.HomeScore</strong>
+                                        <span class="match-vs">-</span>
+                                        <strong>@match.AwayScore</strong>
+                                        <button class="btn btn-secondary" 
+                                                style="padding: 0.5rem 1rem; margin-left: 0.5rem; font-size: 0.9rem;"
+                                                @onclick="() => EditMatchResult(match)">
+                                            ✏️
+                                        </button>
+                                    </div>
+                                }
+                                <div class="match-team" style="text-align: right;">@awayTeam.TeamName</div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Europa League -->
+        <div>
+            <div class="table-container league-table">
+                <div class="league-table-header europa-league-header">
+                    🥈 Betabit Europa League
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th class="table-position">#</th>
+                            <th>Team</th>
+                            <th class="table-stats">P</th>
+                            <th class="table-stats">W</th>
+                            <th class="table-stats">D</th>
+                            <th class="table-stats">L</th>
+                            <th class="table-stats">GF</th>
+                            <th class="table-stats">GA</th>
+                            <th class="table-stats">GD</th>
+                            <th class="table-stats">Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var elPosition = 1;
+                        }
+                        @foreach (var team in GetEuropaLeagueStandings())
+                        {
+                            <tr class="@(elPosition == 1 ? "champion-row" : "")">
+                                <td class="table-position">
+                                    @if (elPosition == 1)
+                                    {
+                                        <span>👑</span>
+                                    }
+                                    else
+                                    {
+                                        @elPosition
+                                    }
+                                </td>
+                                <td class="table-team">@team.TeamName</td>
+                                <td class="table-stats">@team.Played</td>
+                                <td class="table-stats">@team.Won</td>
+                                <td class="table-stats">@team.Drawn</td>
+                                <td class="table-stats">@team.Lost</td>
+                                <td class="table-stats">@team.GoalsFor</td>
+                                <td class="table-stats">@team.GoalsAgainst</td>
+                                <td class="table-stats">@team.GoalDifference</td>
+                                <td class="table-stats"><strong>@team.Points</strong></td>
+                            </tr>
+                            elPosition++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card mt-3">
+                <h3 style="color: var(--europa-color); margin-bottom: 1rem;">⚽ Europa League Fixtures</h3>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    @foreach (var match in europaLeagueMatches.OrderBy(m => m.IsPlayed))
+                    {
+                        var homeTeam = GetTeam(match.HomeTeamId);
+                        var awayTeam = GetTeam(match.AwayTeamId);
+                        if (homeTeam != null && awayTeam != null)
+                        {
+                            <div class="match-card" style="border-left: 3px solid var(--europa-color);">
+                                <div class="match-team">@homeTeam.TeamName</div>
+                                @if (!match.IsPlayed)
+                                {
+                                    <div class="match-score">
+                                        <input type="number" 
+                                               class="match-score-input" 
+                                               min="0" 
+                                               @bind="@homeScores[match.Id]" 
+                                               placeholder="0" />
+                                        <span class="match-vs">vs</span>
+                                        <input type="number" 
+                                               class="match-score-input" 
+                                               min="0" 
+                                               @bind="@awayScores[match.Id]" 
+                                               placeholder="0" />
+                                        <button class="btn btn-europa" 
+                                                style="padding: 0.5rem 1rem; margin-left: 0.5rem;"
+                                                @onclick="() => SaveMatchResult(match)">
+                                            Save
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="match-score">
+                                        <strong>@match.HomeScore</strong>
+                                        <span class="match-vs">-</span>
+                                        <strong>@match.AwayScore</strong>
+                                        <button class="btn btn-secondary" 
+                                                style="padding: 0.5rem 1rem; margin-left: 0.5rem; font-size: 0.9rem;"
+                                                @onclick="() => EditMatchResult(match)">
+                                            ✏️
+                                        </button>
+                                    </div>
+                                }
+                                <div class="match-team" style="text-align: right;">@awayTeam.TeamName</div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (AllMatchesPlayed())
+    {
+        <div class="alert alert-success mt-4">
+            <span>🎉</span>
+            <span>
+                <strong>Competition Complete!</strong>
+                <br />
+                🏆 Champions League Winner: <strong>@GetChampionsLeagueStandings().FirstOrDefault()?.TeamName</strong>
+                <br />
+                🥈 Europa League Winner: <strong>@GetEuropaLeagueStandings().FirstOrDefault()?.TeamName</strong>
+            </span>
+        </div>
+    }
+}
+
+<style>
+    .champion-row {
+        background: rgba(255, 215, 0, 0.15);
+        font-weight: 600;
+    }
+</style>
+
+@code {
+    private List<Team> teams = new();
+    private List<Match> championsLeagueMatches = new();
+    private List<Match> europaLeagueMatches = new();
+    private Dictionary<Guid, int> homeScores = new();
+    private Dictionary<Guid, int> awayScores = new();
+
+    protected override void OnInitialized()
+    {
+        LoadData();
+        CompetitionService.OnChange += OnDataChanged;
+    }
+
+    private void LoadData()
+    {
+        teams = CompetitionService.GetAllTeams().ToList();
+        championsLeagueMatches = CompetitionService.GetLeagueMatches(LeagueType.ChampionsLeague).ToList();
+        europaLeagueMatches = CompetitionService.GetLeagueMatches(LeagueType.EuropaLeague).ToList();
+        InitializeScoreDictionaries();
+    }
+
+    private void OnDataChanged()
+    {
+        InvokeAsync(() =>
+        {
+            LoadData();
+            StateHasChanged();
+        });
+    }
+
+    private void InitializeScoreDictionaries()
+    {
+        homeScores.Clear();
+        awayScores.Clear();
+        
+        foreach (var match in championsLeagueMatches.Concat(europaLeagueMatches))
+        {
+            homeScores[match.Id] = match.HomeScore ?? 0;
+            awayScores[match.Id] = match.AwayScore ?? 0;
+        }
+    }
+
+    private bool HasSplitLeagues() => championsLeagueMatches.Count > 0 || europaLeagueMatches.Count > 0;
+
+    private void SaveMatchResult(Match match)
+    {
+        if (homeScores.TryGetValue(match.Id, out var homeScore) &&
+            awayScores.TryGetValue(match.Id, out var awayScore))
+        {
+            CompetitionService.UpdateMatchResult(match.Id, homeScore, awayScore);
+        }
+    }
+
+    private void EditMatchResult(Match match)
+    {
+        if (match.HomeScore.HasValue && match.AwayScore.HasValue)
+        {
+            homeScores[match.Id] = match.HomeScore.Value;
+            awayScores[match.Id] = match.AwayScore.Value;
+            match.HomeScore = null;
+            match.AwayScore = null;
+        }
+    }
+
+    private Team? GetTeam(Guid teamId) => teams.FirstOrDefault(t => t.Id == teamId);
+
+    private List<Team> GetChampionsLeagueStandings() => 
+        CompetitionService.GetLeagueStandings(LeagueType.ChampionsLeague);
+
+    private List<Team> GetEuropaLeagueStandings() => 
+        CompetitionService.GetLeagueStandings(LeagueType.EuropaLeague);
+
+    private bool AllMatchesPlayed() => 
+        championsLeagueMatches.All(m => m.IsPlayed) && 
+        europaLeagueMatches.All(m => m.IsPlayed) &&
+        championsLeagueMatches.Count > 0 && 
+        europaLeagueMatches.Count > 0;
+
+    public void Dispose()
+    {
+        CompetitionService.OnChange -= OnDataChanged;
+    }
+}

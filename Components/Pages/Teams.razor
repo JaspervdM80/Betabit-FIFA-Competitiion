@@ -1,0 +1,218 @@
+@page "/"
+@using FC26Competition.Models
+@using FC26Competition.Services
+@inject CompetitionService CompetitionService
+@implements IDisposable
+@rendermode InteractiveServer
+
+<div class="page-header">
+    <h1 class="page-title">⚽ Teams Management</h1>
+    <p class="page-description">Create and manage your 16 teams for the FC26 Competition</p>
+</div>
+
+@if (teams.Count < 16)
+{
+    <div class="alert alert-info">
+        <span>📋</span>
+        <span>You have @teams.Count/16 teams. @(16 - teams.Count) more needed to start the competition.</span>
+    </div>
+}
+else
+{
+    <div class="alert alert-success">
+        <span>✅</span>
+        <span>All 16 teams registered! You can now generate the competition fixtures.</span>
+    </div>
+}
+
+<div class="flex-between mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddModal" disabled="@(teams.Count >= 16)">
+        ➕ Add Team
+    </button>
+</div>
+
+<div class="grid grid-2">
+    @foreach (var team in teams)
+    {
+        <div class="team-card">
+            <h3 class="team-name">@team.TeamName</h3>
+            <div class="team-info">
+                <strong>Players:</strong> @team.Player1Name & @team.Player2Name
+            </div>
+            <span class="team-club">@team.ClubCountry</span>
+            <div class="team-actions">
+                <button class="btn btn-secondary" @onclick="() => ShowEditModal(team)">
+                    ✏️ Edit
+                </button>
+                <button class="btn btn-danger" @onclick="() => DeleteTeam(team.Id)">
+                    🗑️ Delete
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@if (showModal)
+{
+    <div class="modal-overlay" @onclick="HideModal">
+        <div class="modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2 class="modal-title">@(editingTeam == null ? "Add Team" : "Edit Team")</h2>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Team Name</label>
+                    <input type="text" class="form-control" @bind="teamName" placeholder="e.g., The Legends" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Player 1 Name</label>
+                    <input type="text" class="form-control" @bind="player1Name" placeholder="e.g., John Doe" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Player 2 Name</label>
+                    <input type="text" class="form-control" @bind="player2Name" placeholder="e.g., Jane Smith" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Club/Country</label>
+                    <input type="text" class="form-control" @bind="clubCountry" placeholder="e.g., FC Barcelona, Netherlands" />
+                </div>
+                @if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    <div class="alert alert-warning">
+                        <span>⚠️</span>
+                        <span>@errorMessage</span>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="HideModal">Cancel</button>
+                <button class="btn btn-primary" @onclick="SaveTeam">
+                    @(editingTeam == null ? "Add Team" : "Save Changes")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Team> teams = new();
+    private bool showModal = false;
+    private Team? editingTeam = null;
+    private string teamName = string.Empty;
+    private string player1Name = string.Empty;
+    private string player2Name = string.Empty;
+    private string clubCountry = string.Empty;
+    private string errorMessage = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        LoadTeams();
+        CompetitionService.OnChange += OnCompetitionChanged;
+    }
+
+    private void OnCompetitionChanged()
+    {
+        InvokeAsync(() =>
+        {
+            LoadTeams();
+            StateHasChanged();
+        });
+    }
+
+    private void LoadTeams()
+    {
+        teams = CompetitionService.GetAllTeams().ToList();
+    }
+
+    private void ShowAddModal()
+    {
+        editingTeam = null;
+        teamName = string.Empty;
+        player1Name = string.Empty;
+        player2Name = string.Empty;
+        clubCountry = string.Empty;
+        errorMessage = string.Empty;
+        showModal = true;
+    }
+
+    private void ShowEditModal(Team team)
+    {
+        editingTeam = team;
+        teamName = team.TeamName;
+        player1Name = team.Player1Name;
+        player2Name = team.Player2Name;
+        clubCountry = team.ClubCountry;
+        errorMessage = string.Empty;
+        showModal = true;
+    }
+
+    private void HideModal()
+    {
+        showModal = false;
+        editingTeam = null;
+        errorMessage = string.Empty;
+    }
+
+    private void SaveTeam()
+    {
+        if (string.IsNullOrWhiteSpace(teamName) ||
+            string.IsNullOrWhiteSpace(player1Name) ||
+            string.IsNullOrWhiteSpace(player2Name) ||
+            string.IsNullOrWhiteSpace(clubCountry))
+        {
+            errorMessage = "All fields are required.";
+            return;
+        }
+
+        try
+        {
+            if (editingTeam == null)
+            {
+                var newTeam = new Team
+                {
+                    TeamName = teamName.Trim(),
+                    Player1Name = player1Name.Trim(),
+                    Player2Name = player2Name.Trim(),
+                    ClubCountry = clubCountry.Trim()
+                };
+                CompetitionService.AddTeam(newTeam);
+            }
+            else
+            {
+                editingTeam.TeamName = teamName.Trim();
+                editingTeam.Player1Name = player1Name.Trim();
+                editingTeam.Player2Name = player2Name.Trim();
+                editingTeam.ClubCountry = clubCountry.Trim();
+                CompetitionService.UpdateTeam(editingTeam);
+            }
+
+            LoadTeams();
+            HideModal();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void DeleteTeam(Guid teamId)
+    {
+        if (confirm("Are you sure you want to delete this team?"))
+        {
+            CompetitionService.DeleteTeam(teamId);
+            LoadTeams();
+        }
+    }
+
+    private bool confirm(string message)
+    {
+        // In a real app, you'd use a proper confirmation dialog
+        // For now, we'll just return true
+        return true;
+    }
+
+    public void Dispose()
+    {
+        CompetitionService.OnChange -= OnCompetitionChanged;
+    }
+}

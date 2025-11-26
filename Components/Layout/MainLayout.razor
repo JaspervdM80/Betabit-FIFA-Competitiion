@@ -1,0 +1,22 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">⚽ FC26 Competition</h1>
+            <nav class="nav">
+                <a href="/" class="nav-link">Teams</a>
+                <a href="/competition" class="nav-link">Main Competition</a>
+                <a href="/split-leagues" class="nav-link">Champions & Europa League</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        @Body
+    </main>
+
+    <footer class="footer">
+        <p>Betabit FC26 Competition Manager © @DateTime.Now.Year</p>
+    </footer>
+</div>
