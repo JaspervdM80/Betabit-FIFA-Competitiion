@@ -9,21 +9,35 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Configure SQLite database
+// Configure SQL Server database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
 builder.Services.AddDbContextFactory<FC26CompetitionContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 // Register services
 builder.Services.AddScoped<CompetitionService>();
 
 var app = builder.Build();
 
-// Ensure database is created
+// Ensure database is created (migrations will be used in production)
 using (var scope = app.Services.CreateScope())
 {
     var contextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<FC26CompetitionContext>>();
     await using var context = await contextFactory.CreateDbContextAsync();
-    await context.Database.EnsureCreatedAsync();
+    
+    // For development: auto-create database
+    // For production: use migrations
+    if (app.Environment.IsDevelopment())
+    {
+        await context.Database.EnsureCreatedAsync();
+    }
+    else
+    {
+        // Apply any pending migrations automatically
+        await context.Database.MigrateAsync();
+    }
 }
 
 // Configure the HTTP request pipeline.
